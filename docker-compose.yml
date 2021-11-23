@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  # The name of the service to run
+  server:
+    build:
+      # The path to the service's repository
+      context: .
+      dockerfile: ./Dockerfile
+    # bind the service's exposed port 80 to the host's 8222
+    ports:
+      - 8222:80
+    restart: unless-stopped
+    depends_on:
+      - server-db
+    # export useful environment variables to the service
+    environment:
+      - SERVER_DB_PORT=8223
+
+  server-db:
+    # use existing mongo image from dockerhub
+    image: mongo
+    container_name: server-db
+    ports:
+      - 8223:27017
+    restart: unless-stopped
+    # use server-db-data directory as volume to store data
+    volumes:
+      - ./server-db-data:/data/db
+    # set user anf group to mongo
+    environment:
+      - PUID=1000
+      - PGID=1000
+
