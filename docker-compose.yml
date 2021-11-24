@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.3"
 
 services:
   # The name of the service to run
@@ -27,8 +27,10 @@ services:
     # use server-db-data directory as volume to store data
     volumes:
       - ./server-db-data:/data/db
-    # set user anf group to mongo
+    # export useful environment variables to the service's container
     environment:
+      - SERVER_DB_HOST=server-db
+      - SERVER_DB_PORT=27017
+      - SERVER_DB_DB_NAME=server-db
       - PUID=1000
       - PGID=1000
-

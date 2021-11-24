@@ -8,11 +8,13 @@ import json
 import os
 import uvicorn
 
+from src.server.database import DB
+
 # connection_str = "server-db:27017"
-connection_str = "localhost:8223"
-client = MongoClient(connection_str, connect=False)
-db = client["server-db"]
-print("Connected")
+# connection_str = "127.0.0.1:8223"
+# client = MongoClient(connection_str, connect=False)
+# db = client["server-db"]
+# print("Connected")
 
 app = FastAPI()
 
@@ -208,6 +210,9 @@ async def statistics_progress():
         }
     }
 
-
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8222, reload=True)
+    """
+    To start Uvicorn server from terminal enter: 
+    uvicorn main:app --reload --host localhost --port 8222 --reload
+    """
+    uvicorn.run("main:app", host="localhost", port=8222, reload=True)
