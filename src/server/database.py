@@ -13,10 +13,14 @@ def init():
         CLIENT = pymongo.MongoClient(MONGO_URI, serverSelectionTimeoutMS=timeout)
         CLIENT.server_info()
 
-        if os.environ["SERVER_DB_NAME"] in CLIENT.list_database_names():
-            DB = CLIENT[os.environ["SERVER_DB_NAME"]]
-        else:
-            raise Exception(f'{os.environ["SERVER_DB_NAME"]} does not exist')
+        DB = CLIENT[os.environ["SERVER_DB_NAME"]]
+
+        # return DB, CLIENT
+
+        # if os.environ["SERVER_DB_NAME"] in CLIENT.list_database_names():
+        #     DB = CLIENT[os.environ["SERVER_DB_NAME"]]
+        # else:
+        #     raise Exception(f'{os.environ["SERVER_DB_NAME"]} does not exist')
 
     except pymongo.errors.ServerSelectionTimeoutError as err:
         raise err

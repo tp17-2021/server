@@ -15,7 +15,9 @@ services:
       - server-db
     # export useful environment variables to the service
     environment:
-      - SERVER_DB_PORT=8223
+      - SERVER_DB_HOST=server-db
+      - SERVER_DB_PORT=27017
+      - SERVER_DB_NAME=server-db
 
   server-db:
     # use existing mongo image from dockerhub
@@ -29,8 +31,5 @@ services:
       - ./server-db-data:/data/db
     # export useful environment variables to the service's container
     environment:
-      - SERVER_DB_HOST=server-db
-      - SERVER_DB_PORT=27017
-      - SERVER_DB_DB_NAME=server-db
       - PUID=1000
       - PGID=1000
