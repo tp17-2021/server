@@ -6,26 +6,22 @@ class Collection(BaseModel):
     name: str
     keys: List[str] = []
 
-class ResponseDBSchema(BaseModel):
+class ResponseDatabaseSchema(BaseModel):
     status: str
     message: str
     collections: List[Collection] = []
 
-
-
-class Vote(BaseModel):
-    token: str
-    candidate_id: str
-    party_id: str
-    office_id: str
-    election_id: str
-
+# class Vote(BaseModel):
+#     token: str
+#     candidate_id: str
+#     party_id: str
+#     office_id: str
+#     election_id: str
 
 class ServerCandidate(BaseModel):
     candidate_id: str
 
-
-server_vote_example = None
+# server_vote_example = None
 class ServerVote(BaseModel):
     token: str
     candidates: List[ServerCandidate] = []
@@ -34,41 +30,72 @@ class ServerVote(BaseModel):
     office_id: str
 
     class Config:
-        global server_vote_example
-        server_vote_example = {
+        schema_extra = {
             "example": {
-                "token": "token",
+                "token": "token1",
                 "candidates": [
                     {
-                        "candidate_id" : "some_id"
+                        "candidate_id": "candidate_id1"
                     },
                     {
-                        "candidate_id" : "another_id"
-                    }     
+                        "candidate_id": "candidate_id2"
+                    }
                 ],
-                "party_id": "custom_id1",
-                "office_id": "custom_id2",
-                "election_id": "custom_id3",
+                "party_id": "party_id1",
+                "election_id": "election_id1",
+                "office_id": "office_id1"
             }
         }
+
     
-class RequestVoteSchema(BaseModel):
-    data: List[ServerVote] = []
+class RequestServerVoteSchema(BaseModel):
+    votes: List[ServerVote] = []
     office_id: str
 
     class Config:
-        global server_vote_example
-        request_vote_example = { 
-            "data": [
-                server_vote_example
-            ],
-            "office_id": "custom_id4"
+        schema_extra = {
+            "example": {
+                "votes": [
+                    {
+                        "token": "token1",
+                        "candidates": [
+                            {
+                                "candidate_id": "candidate_id1"
+                            },
+                            {
+                                "candidate_id": "candidate_id2"
+                            }
+                        ],
+                        "party_id": "party_id1",
+                        "election_id": "election_id1",
+                        "office_id": "office_id1"
+                    },
+                    {
+                        "token": "token2",
+                        "candidates": [
+                            {
+                                "candidate_id": "candidate_id1"
+                            },
+                            {
+                                "candidate_id": "candidate_id2"
+                            }
+                        ],
+                        "party_id": "party_id1",
+                        "election_id": "election_id1",
+                        "office_id": "office_id1"
+                    }
+                ],
+                "office_id": "office_id1"
+            }
         }
 
-class ResponseVoteSchema(BaseModel):
+
+
+class ResponseServerVoteSchema(BaseModel):
     status: str
     message: str
-    vote: Vote
+    votes: List[ServerVote] = []
+    office_id: str
 
 # kandidat
 # strana
@@ -126,3 +153,13 @@ class DatabaseParty(BaseModel):
 # jednoduche vyhodnotenie
 # porataj pogroupovane podla can Id a party id
 # pomenovanie na predbezne (urcene len pre G a pre Admina + TV) / vysledky ()
+
+
+
+# schemas naming convention
+
+# Resquest or Response
+# <Request/Response><Elections/Statistics/Database/Server/...><What Optional><Schema>
+
+# Nested class
+# <Elections/Statistics/Database/Server/...><What>

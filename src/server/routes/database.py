@@ -27,7 +27,7 @@ def get_keys(collection_name: str):
     return result.distinct('_id')
 
 
-@router.get("/schema", tags=["Database"], response_model=schemas.ResponseDBSchema)
+@router.get("/schema", response_model=schemas.ResponseDatabaseSchema)
 async def db_schema():
     """
     Get all collections from database
@@ -67,7 +67,7 @@ def insertCandidate(candidate, party_id_map):
 async def import_data():
     start_time = time.time()
 
-    # we are in folder code in docker container and there si copy of src, data and requirements
+    # we are in folder code in docker container and there is copy of src, data and requirements
     candidates = getJsonFile("data/nrsr_2020/candidates_transformed.json")
     parties = getJsonFile("data/nrsr_2020/parties_transformed.json")
 

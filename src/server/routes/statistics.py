@@ -148,6 +148,8 @@ async def statistics_final():
     pprint(temporary_cut_result) 
     temporary_cut_result[0]["candidates"] = temporary_cut_result[0]["candidates"][0:5]
 
+    print("="*80)
+
 
     # TODO sort candidates by votes inside result 
 

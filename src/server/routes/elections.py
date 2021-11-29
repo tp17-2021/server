@@ -14,28 +14,63 @@ router = APIRouter(
 )
 
 
-@router.post("/vote", response_model=schemas.ResponseVoteSchema)
-async def vote (request: schemas.RequestVoteSchema):
+def validate_token(token):
+    # todo
+    return True
+
+def validate_office(office_id):
+    # todo
+    return True
+
+def validate_votes(request):
+    # todo
+    # office_key_pair = "xxxx"
+    # try to decipher data with the private key somehow
+    
+    office_id = request.office_id
+    votes = request.votes
+
+    if not validate_office(office_id):
+        return False
+
+    for vote in votes:
+        token = vote.token
+        if not validate_token(token):
+            return False
+
+    return True
+
+
+@router.post("/vote", response_model=schemas.ResponseServerVoteSchema)
+async def vote (request: schemas.RequestServerVoteSchema):
     """
     Process candidate's vote
     """
     
-    office_id = request["office_id"]
+    if not validate_votes(request):
+        return {
+            "status": "fail",
+            "message": "Vote was not processed",
+        }
 
-    # validate token and room
-    if(True or "office id exists"):
-        office_key_pair = "xxxx"
+    votes = request.votes
+    for vote in votes:
+        vote = dict(vote)
 
-        # try to decipher data with the private key somehow
-        
-    print(f"{office_id=}")
-    
-    # DB.votes.insert(dict(request))
+        candidates = []
+        for candidate in vote["candidates"]:
+            candidate = dict(candidate)
+            candidates.append(candidate)
 
+        vote["candidates"] = candidates
+        DB.votes.insert(vote)
+
+    office_id = request.office_id
     return {
         "status": "success",
-        "message": "Vote processed",
-        "vote": dict(request)
+        "message": "Vote was processed",
+        "votes": votes,
+        "office_id": office_id
     }
 
 @router.get("/seed/votes/{number}")
@@ -48,7 +83,7 @@ async def vote_seeder(number: int):
     parties = get_parties_with_candidates()
 
     data_to_insert = []
-    for x in range(number):
+    for _ in range(number):
         selected_party = random.choice(parties)
         vote = {
             "token": "token",
