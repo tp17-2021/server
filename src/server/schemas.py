@@ -24,20 +24,46 @@ class Vote(BaseModel):
 class ServerCandidate(BaseModel):
     candidate_id: str
 
-class Data(BaseModel):
+
+server_vote_example = None
+class ServerVote(BaseModel):
     token: str
     candidates: List[ServerCandidate] = []
     party_id: str
     election_id: str
-
-
-class Vote(BaseModel):
-    data: Data
     office_id: str
+
+    class Config:
+        global server_vote_example
+        server_vote_example = {
+            "example": {
+                "token": "token",
+                "candidates": [
+                    {
+                        "candidate_id" : "some_id"
+                    },
+                    {
+                        "candidate_id" : "another_id"
+                    }     
+                ],
+                "party_id": "custom_id1",
+                "office_id": "custom_id2",
+                "election_id": "custom_id3",
+            }
+        }
     
-    
-class RequestVoteSchema(Vote):
-    pass
+class RequestVoteSchema(BaseModel):
+    data: List[ServerVote] = []
+    office_id: str
+
+    class Config:
+        global server_vote_example
+        request_vote_example = { 
+            "data": [
+                server_vote_example
+            ],
+            "office_id": "custom_id4"
+        }
 
 class ResponseVoteSchema(BaseModel):
     status: str

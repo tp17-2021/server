@@ -26,4 +26,6 @@ app.include_router(DatabaseRouter)
 
 @app.get("/", tags=["Root"])
 async def root():
-    return {"message": "Server is running"}
+    return {
+        "message": "Server is running"
+    }
