@@ -66,8 +66,8 @@ def insertCandidate(candidate, party_id_map):
 async def import_data():
     start_time = time.time()
 
-    candidates = getJsonFile("data/nrsr_2020/candidates_transformed.json")
-    parties = getJsonFile("data/nrsr_2020/parties_transformed.json")
+    candidates = getJsonFile("../data/nrsr_2020/candidates_transformed.json")
+    parties = getJsonFile("../data/nrsr_2020/parties_transformed.json")
 
     DB.votes.remove({})
     DB.candidates.remove({})

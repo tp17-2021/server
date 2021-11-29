@@ -12,7 +12,7 @@ router = APIRouter(
 @router.get('/progress')
 async def statistics_progress():
     votes = list(DB.votes.find({}))
-    eligible_voters = 2 * (10**3)
+    eligible_voters = 2 * (10**3) # in conf
     vote_participation = round(eligible_voters / len(votes), 5) if len(votes) else 0
 
     offices = DB.election_offices.find({}).count()

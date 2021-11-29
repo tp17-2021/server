@@ -17,6 +17,8 @@ async def vote (request: schemas.RequestVoteSchema):
     """
     Process candidate's vote
     """
+    # validate token and room
+
     DB.votes.insert(dict(request))
 
     return {
@@ -38,8 +40,6 @@ def retype_object_id_to_str(data):
         return str(data)
     else:
         return data
-
-
 
 
 @router.get('/voting-data')

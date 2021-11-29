@@ -4,16 +4,23 @@
 
 # @app.get('/generate-keys')
 # async def test():
+
+#     # gen func
+
 #     keys = [
 #         {
 #             "public": "asdasd....",
 #             "private": "asd......."
 #         }
 #     ]
+
+#     # store into DB
+
+#     # return as successful msg
 #     return {
 #         'status' : 'success',
 #         'message': 'Keys generated successfully',
-#         'keys' : keys
+#         # 'keys' : keys 
 #     }
 
 # def validate_election_office(id, token):
