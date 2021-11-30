@@ -1,8 +1,11 @@
 from fastapi import APIRouter
 
 import random
+import os
 from pprint import pprint
 from bson.objectid import ObjectId
+import json
+import shutil
 
 from src.server import schemas
 from src.server.database import DB, CLIENT
@@ -13,6 +16,11 @@ router = APIRouter(
     tags=["Elections"],
 )
 
+def saveJson(data, filePath):
+	if(".json" not in filePath):
+		filePath += ".json"
+	with open(f"{filePath}", "w", encoding='utf8') as write_file:
+		json.dump(data, write_file, indent=4, ensure_ascii=False)
 
 def validate_token(token):
     # todo
@@ -139,14 +147,66 @@ def get_parties_with_candidates():
         }
     ]))
 
+# Configuration file for VT, development version
+# curl -X "GET" "http://localhost:8222/elections/voting-data" -H "accept: application/json" > voting-data.json
 @router.get('/voting-data')
 async def elections_voting_data():
     
+    # Parties and candidates data from DB
     parties = get_parties_with_candidates()
     parties = retype_object_id_to_str(parties)
 
+    # Multilingual text for VT application
+    texts = {
+        "elections_name_short" : {
+            "sk" : "Voľby do NRSR",
+            "en" : "Parliamentary elections",
+        },
+        "elections_name_long" : {
+            "sk" : "Voľby do národnej rady Slovenskej republiky",
+            "en" : "Parliamentary elections of Slovak Republic",
+        },
+        "election_date" : {
+            "sk" : "30.11.2021",
+            "en" : "30.11.2021",
+        }
+    }
+
+    # Combine all the data together
+    data = {
+        "parties" : parties,
+        "texts" : texts
+    }
+
+    # Cntainer folder structure
+    # data
+    # src
+    # ---- server
+    # ---------- public
+    # ---------------- config.zip
+    # ---------------- nrsr_2020
+    # -------------------------- logos
+    # -------------------------- data.json
+
+
+    public_dir_path = "src/server/public"
+    data_path = os.path.join(public_dir_path, "nrsr_2020")
+    if not os.path.exists(data_path):
+        os.mkdir(data_path)
+
+    logos_path = os.path.join(data_path, "logos")
+    if not os.path.exists(logos_path):
+        os.mkdir(logos_path)
+        dest = shutil.copytree("data/nrsr_2020/logos/", "src/server/public/nrsr_2020/logos/", dirs_exist_ok=True)
+
+    # file is accesible on /public/nrsr_2020/data.json
+    saveJson(data, "src/server/public/nrsr_2020/data.json")    
+
+    # make config file zip, downloadable at /public/config.zip
+    shutil.make_archive("src/server/public/config", 'zip', "src/server/public/nrsr_2020/")
+
     return {
         'status' : 'success',
-        'message': 'Elections data',
-        'data' : parties[0]
+        'message': 'Elections data created',
+        # 'data' : data
     }

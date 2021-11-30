@@ -46,8 +46,6 @@ def main():
         "Počet kandidátov" : "candidates_count"
     })
 
-    df["image"] = "don_roberto_logo.jpg"
-
     df = df.drop(['candidates_count', 'note'], axis=1)
 
     print(df.head())
