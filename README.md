@@ -5,8 +5,9 @@ Voting server public API implemented in FastAPI used to accept incoming votes fr
 
 ## How to run it
 Development run without docker, run it from the server directory. Flag --reload makes sure the uvicorn server reloads on any file change.
+
 ```
-uvicorn src.main:app --host localhost --port 80 --reload
+uvicorn src.server.app:app --host localhost --port 80 --reload
 ```
 
 Clone the repo and navigate inside it. Build the image:
