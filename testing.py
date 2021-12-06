@@ -1,4 +1,6 @@
 import os
+from src.server.database import DB, CLIENT
+
 print(os.getcwd())
 
 from fastapi.testclient import TestClient
@@ -106,3 +108,79 @@ def test_vote_endpoint_good_request():
 
     response = client.post("/elections/vote", json=data)
     assert response.status_code == 200
+
+#  success vote, count votes after 1 insert
+def test_vote_endpoint_vote_is_inserted():
+
+    DB.votes.drop()
+
+    data = {
+        "votes": [
+            {
+                "token": "token1",
+                "candidates": [
+                    {
+                        "candidate_id": "candidate_id1"
+                    },
+                    {
+                        "candidate_id": "candidate_id2"
+                    }
+                ],
+                "party_id": "party_id1",
+                "election_id": "election_id1",
+                "office_id": "office_id1"
+            }
+        ],
+        "office_id": "123456"
+    }
+
+    response = client.post("/elections/vote", json=data)
+    assert response.status_code == 200
+
+    # TODO zistit ako spravit databazovy count
+    votes = list(DB.votes.find({}))
+    vote_count  = len(votes)
+
+    assert vote_count == 1
+
+
+#  test inserting invalid party
+def test_vote_endpoint_invalid_party_id():
+
+    DB.votes.drop()
+
+    data = {
+        "votes": [
+            {
+                "token": "token1",
+                "candidates": [
+                    {
+                        "candidate_id": "candidate_id1"
+                    },
+                    {
+                        "candidate_id": "candidate_id2"
+                    }
+                ],
+                "party_id": "non_existing_party_id",
+                "election_id": "election_id1",
+                "office_id": "office_id1"
+            }
+        ],
+        "office_id": "123456"
+    }
+
+    response = client.post("/elections/vote", json=data)
+    assert response.status_code == 200
+
+    # TODO zistit ako spravit databazovy count
+    votes = list(DB.votes.find({}))
+    vote_count  = len(votes)
+
+    assert vote_count == 1
+
+
+    
+
+    
+
+    

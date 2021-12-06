@@ -2,6 +2,9 @@ from typing import Collection
 from pydantic import BaseModel, validator, Extra, Field
 from typing import List
 
+class Message(BaseModel):
+    message: str
+
 class Collection(BaseModel):
     name: str
     keys: List[str] = []
