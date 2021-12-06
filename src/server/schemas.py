@@ -1,5 +1,5 @@
 from typing import Collection
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, Extra, Field
 from typing import List
 
 class Collection(BaseModel):
@@ -49,10 +49,17 @@ class ServerVote(BaseModel):
 
     
 class RequestServerVoteSchema(BaseModel):
-    votes: List[ServerVote] = []
-    office_id: str
+    votes: List[ServerVote] = Field(...)
+    office_id: str = Field(...)
+
+    @validator('votes')
+    def name_must_contain_space(cls, votes):
+        if not len(votes):
+            raise ValueError('cannot be empty')
+        return votes
 
     class Config:
+        extra = Extra.forbid
         schema_extra = {
             "example": {
                 "votes": [

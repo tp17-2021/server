@@ -62,6 +62,7 @@ async def vote (request: schemas.RequestServerVoteSchema):
         }
 
     votes = request.votes
+    # print(request)
     for vote in votes:
         vote = dict(vote)
 
@@ -80,7 +81,7 @@ async def vote (request: schemas.RequestServerVoteSchema):
         "votes": votes,
         "office_id": office_id
     }
-
+    
 @router.get("/seed/votes/{number}")
 async def vote_seeder(number: int):
     """

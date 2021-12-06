@@ -4,3 +4,5 @@ uvicorn>=0.15.0,<0.16.0
 pymongo>=3.12.1
 prettyprint
 aiofiles
+requests
+pytest
