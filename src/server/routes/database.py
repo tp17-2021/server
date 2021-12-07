@@ -62,7 +62,32 @@ def insertCandidate(candidate, party_id_map):
     candidate["party_id"] = party_id_map[candidate["party_number"]]
     DB.candidates.insert(candidate)  
 
+# TODO create schema for stored polling place
+@router.post('/import-polling-places')
+async def import_polling_places():
+    start_time = time.time()
+    
+    DB.polling_places.drop()
 
+    structures = getJsonFile("data/nrsr_2020/polling_places.json")
+    data_to_insert = []
+
+    for polling_place in structures:
+        # TODO tu sa este doplnia dalsie info ako napriklad privatne kluce alebo to co bude treba
+        data_to_insert.append(polling_place)
+
+    DB.polling_places.insert_many(data_to_insert)
+    polling_places_count = len(list(DB.polling_places.find({})))
+    print(polling_places_count)
+
+    return {
+        'status' : 'success',
+        'message': 'Polling places data imported',
+        'polling_places_count' : polling_places_count,
+        'time' : round(time.time() - start_time, 3)
+    }
+
+# TODO tuto treba overit podla schemy !!!!
 @router.post('/import-data')
 async def import_data():
     start_time = time.time()
@@ -71,10 +96,10 @@ async def import_data():
     candidates = getJsonFile("data/nrsr_2020/candidates_transformed.json")
     parties = getJsonFile("data/nrsr_2020/parties_transformed.json")
 
-    DB.votes.remove({})
-    DB.candidates.remove({})
-    DB.parties.remove({})
-    DB.election_offices.remove({})
+    DB.votes.drop()
+    DB.candidates.drop()
+    DB.parties.drop()
+    DB.election_offices.drop()
     
     sample_candidate = {
         "id": random.randint(10**6, 10**7),
