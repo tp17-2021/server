@@ -2,6 +2,8 @@ FROM python:3.10-alpine
 
 WORKDIR /code
 
+RUN apk add -U g++ gcc
+
 COPY ./data ./data
 
 COPY ./requirements.txt ./requirements.txt

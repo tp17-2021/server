@@ -11,6 +11,7 @@ client = TestClient(app)
 
 
 # TODO k testovaniu
+# zisit preco sa musi kazdy test volat prefixom test
 # pripojit sa k test databaze ...
 # spustanie vsetkzch testov pomocou pytest automaticky
 # fixnut cestu src main (chceme testy dat do server priecinku server/tests/...) -> potom v dockerfile zrusit kopirovanie
@@ -22,8 +23,9 @@ client = TestClient(app)
 # 4. existuje configuracny a obsahuje candidatov partiesa a texty?
 # 
 
-# pytest testing.py --verbose
-
+# -s for verbose
+# --verbose for deatil about each test
+# pytest testing.py --verbose -s
 
 def test_read_main():
     response = client.get("/")

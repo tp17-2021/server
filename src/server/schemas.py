@@ -40,17 +40,20 @@ class ServerPollingPlace(BaseModel):
 
     class Config:
         schema_extra = {
-            "region_code": 1,
-            "region_name": "Bratislavský kraj",
-            "administrative_area_code": 101,
-            "administrative_area_name": "Bratislava",
-            "county_code": 101,
-            "county_name": "Bratislava I",
-            "municipality_code": 528595,
-            "municipality_name": "Bratislava - Staré Mesto",
-            "polling_place_number": 5,
-            "registered_voters_count": 1362
+            "example": {
+                "region_code": 1,
+                "region_name": "Bratislavský kraj",
+                "administrative_area_code": 101,
+                "administrative_area_name": "Bratislava",
+                "county_code": 101,
+                "county_name": "Bratislava I",
+                "municipality_code": 528595,
+                "municipality_name": "Bratislava - Staré Mesto",
+                "polling_place_number": 5,
+                "registered_voters_count": 1362
+            }
         }
+
 
 class ServerCandidate(BaseModel):
     candidate_id: str
@@ -129,6 +132,19 @@ class RequestServerVoteSchema(BaseModel):
                     }
                 ],
                 "office_id": "office_id1"
+            }
+        }
+
+
+class RequestEncryptionDecryptionTestSchema(BaseModel):
+    class Config:
+        extra = "allow"
+        schema_extra = {
+            "example": {
+                "some text field": "Hi there!",
+                "some number": 123,
+                "some list": [],
+                "some dict": {}
             }
         }
 
