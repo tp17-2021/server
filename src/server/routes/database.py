@@ -37,14 +37,12 @@ def get_keys(collection_name: str):
 
 
 @router.get("/schema", response_model=schemas.ResponseDatabaseSchema)
-async def db_schema():
+async def schema():
     """
     Get all collections from database
     """
     collections = []
-
-    collection_names = [
-        collection_name for collection_name in CLIENT["server-db"].collection_names()]
+    collection_names = [collection_name for collection_name in DB.collection_names()]
     for collection_name in collection_names:
         collection_keys = get_keys(collection_name)
         collections.append({
@@ -205,54 +203,51 @@ async def test_encryption_decryption(request: RequestEncryptionDecryptionTestSch
 # TODO tuto treba overit podla schemy !!!!
 @router.post('/import-data')
 async def import_data():
-    start_time = time.time()
-
-    # we are in folder code in docker container and there is copy of src, data and requirements
-    candidates = getJsonFile("data/nrsr_2020/candidates_transformed.json")
-    parties = getJsonFile("data/nrsr_2020/parties_transformed.json")
+    time_start = time.time()
 
     DB.votes.drop()
     DB.candidates.drop()
     DB.parties.drop()
     DB.election_offices.drop()
 
-    sample_candidate = {
-        "id": random.randint(10**6, 10**7),
-        "order": random.randint(10, 10000),
-        "first_name": "Jozef",
-        "last_name": "Králik",
-        "middle_names": "Jožko",
-        "degrees_before": "Ing. Mgr.",
-        "degrees_after": "PhD.",
-        "personal_number": "EL180968",
-        "occupation": "Calisthenics enthusiast, crypto trader, physicist, daš si hrozienko?",
-        "age": random.randint(18, 110),
-        "residence": "Prievidza",
-        "party_id": "1"
-    }
+    # we are in folder code in docker container and there is copy of src, data and requirements
+    candidates = getJsonFile("data/nrsr_2020/candidates_transformed.json")
+    parties = getJsonFile("data/nrsr_2020/parties_transformed.json")
 
-    sample_party = {
-        "id": 19,
-        "name": "SMER - sociálna demokracia",
-        "abbreviation": "SMER - SD",
-        "image": "don_roberto_logo.jpg"
-    }
+    # sample_candidate = {
+    #     "id": random.randint(10**6, 10**7),
+    #     "order": random.randint(10, 10000),
+    #     "first_name": "Jozef",
+    #     "last_name": "Králik",
+    #     "middle_names": "Jožko",
+    #     "degrees_before": "Ing. Mgr.",
+    #     "degrees_after": "PhD.",
+    #     "personal_number": "EL180968",
+    #     "occupation": "Calisthenics enthusiast, crypto trader, physicist, daš si hrozienko?",
+    #     "age": random.randint(18, 110),
+    #     "residence": "Prievidza",
+    #     "party_id": "1"
+    # }
+
+    # sample_party = {
+    #     "id": 19,
+    #     "name": "SMER - sociálna demokracia",
+    #     "abbreviation": "SMER - SD",
+    #     "image": "don_roberto_logo.jpg"
+    # }
 
     party_id_map = {}
 
     for party in parties:
-        id = insertParty(party)
-        id = id.inserted_id
-        print(id)
+        id = insertParty(party).inserted_id
         party_id_map[party["party_number"]] = id
-
-    # print(party_id_map)
 
     for candidate in candidates:
         res = insertCandidate(candidate, party_id_map)
 
+    time_end = time.time()
     return {
         'status': 'success',
         'message': 'Voting data imported',
-        'time': round(time.time() - start_time, 3)
+        'time': round(time_end-time_start, 3)
     }
