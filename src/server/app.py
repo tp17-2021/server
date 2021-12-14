@@ -8,6 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from src.server.routes.elections import router as ElectionsRouter
 from src.server.routes.statistics import router as StatisticsRouter
 from src.server.routes.database import router as DatabaseRouter
+# from server.routes.elections import router as ElectionsRouter
+# from server.routes.statistics import router as StatisticsRouter
+# from server.routes.database import router as DatabaseRouter
 
 # Create FastAPI app
 app = FastAPI()
