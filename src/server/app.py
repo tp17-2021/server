@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.params import Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +11,11 @@ from src.server.routes.database import router as DatabaseRouter
 
 # Create FastAPI app
 app = FastAPI()
+
+# create public accesible folder if not exists
+folder_path = "src/server/public"
+if not os.path.exists(folder_path):
+    os.mkdir(folder_path)
 
 # Mount public accesible folder for assets and downloadable files
 # /public/{any path} with be with src/server/public/{any path}
