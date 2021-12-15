@@ -2,13 +2,13 @@ from fastapi import APIRouter, status, HTTPException
 from fastapi.responses import JSONResponse
 import traceback
 
-
 import random
 import os
 from pprint import pprint
 from bson.objectid import ObjectId
 import json
 import shutil
+import asyncio
 
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 
@@ -29,88 +29,55 @@ def saveJson(data, filePath):
         json.dump(data, write_file, indent=4, ensure_ascii=False)
 
 
-def validate_token(token):
+async def validate_token(token):
     # todo
     return True
 
 
-def validate_office(office_id):
+async def validate_office(office_id):
     # todo
     return True
 
 
-def validate_votes(request):
+async def validate_votes(request):
     # todo
     # office_key_pair = "xxxx"
     # try to decipher data with the private key somehow
 
     office_id = request.office_id
-    votes = request.votes
-
-    if not validate_office(office_id):
+    if not await validate_office(office_id):
         return False
 
+    votes = request.votes
     for vote in votes:
         token = vote.token
-        if not validate_token(token):
+        if not await validate_token(token):
             return False
 
     return True
 
 
-@router.post("/vote",
-             response_model=schemas.ResponseServerVoteSchema,
-             status_code=status.HTTP_200_OK,
-             #  responses={500: {"vote": schemas.Message}}
-             )
+@router.post("/vote", response_model=schemas.ResponseServerVoteSchema, status_code=status.HTTP_200_OK)
 async def vote(request: schemas.RequestServerVoteSchema):
     """
     Process candidate's vote
     """
+
     try:
-        if not validate_votes(request):
+        if not await validate_votes(request):
             return {
                 "status": "fail",
                 "message": "Vote was not processed",
             }
 
         votes = request.votes
-        print(votes)
-
         for vote in votes:
             vote = dict(vote)
+            vote["candidates"] = [dict(candidate) for candidate in vote["candidates"]]
 
-            # TODO povedat gatewayou ktory hlas je neplatny
-            party_exits = len(
-                list(DB.parties.find({"_id": vote["party_id"]}))) > 0
-            # if(not party_exits):
-            #     return HTTPException(
-            #         status_code=status.HTTP_400_BAD_REQUEST,
-            #         detail='Non exisitng party'
-            #     )
-
-            candidates = []
-            for candidate in vote["candidates"]:
-                candidate = dict(candidate)
-
-                candidate_exits = len(
-                    list(DB.candidates.find({"_id": candidate["candidate_id"]}))) > 0
-
-                # if(not candidate_exits):
-                #     return HTTPException(
-                #         status_code=status.HTTP_400_BAD_REQUEST,
-                #         detail='Non exisitng candidate'
-                #     )
-
-                candidates.append(candidate)
-
-            vote["candidates"] = candidates
-            print(vote)
-            DB.votes.insert_one(vote)
-            print("here2")
+            await DB.votes.insert_one(vote)
 
         office_id = request.office_id
-        print(office_id)
 
         return {
             "status": "success",
@@ -121,10 +88,66 @@ async def vote(request: schemas.RequestServerVoteSchema):
 
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(
-            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error {str(e)}"
-        )
+        raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Internal server error {str(e)}")
+    
+
+    # try:
+    #     if not validate_votes(request):
+    #         return {
+    #             "status": "fail",
+    #             "message": "Vote was not processed",
+    #         }
+
+    #     votes = request.votes
+    #     for vote in votes:
+    #         vote = dict(vote)
+
+    #         # TODO povedat gatewayou ktory hlas je neplatny
+    #         party_exits = len(
+    #             list(DB.parties.find({"_id": vote["party_id"]}))) > 0
+    #         # if(not party_exits):
+    #         #     return HTTPException(
+    #         #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         #         detail='Non exisitng party'
+    #         #     )
+
+    #         candidates = []
+    #         for candidate in vote["candidates"]:
+    #             candidate = dict(candidate)
+
+    #             candidate_exits = len(
+    #                 list(DB.candidates.find({"_id": candidate["candidate_id"]}))) > 0
+
+    #             # if(not candidate_exits):
+    #             #     return HTTPException(
+    #             #         status_code=status.HTTP_400_BAD_REQUEST,
+    #             #         detail='Non exisitng candidate'
+    #             #     )
+
+    #             candidates.append(candidate)
+
+    #         print(vote)
+    #         vote["candidates"] = candidates
+    #         print(vote)
+    #         DB.votes.insert_one(vote)
+    #         print("here2")
+
+    #     office_id = request.office_id
+    #     print(office_id)
+
+    #     return {
+    #         "status": "success",
+    #         "message": "Vote was processed",
+    #         "votes": votes,
+    #         "office_id": office_id
+    #     }
+
+    # except Exception as e:
+    #     traceback.print_exc()
+    #     raise HTTPException(
+    #         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+    #         detail=f"Internal server error {str(e)}"
+    #     )
 
 
 @ router.get("/seed/votes/{number}")
