@@ -10,7 +10,7 @@ from src.server.routes.statistics import router as StatisticsRouter
 from src.server.routes.database import router as DatabaseRouter
 
 # Create FastAPI app
-app = FastAPI()
+app = FastAPI(root_path=os.environ['ROOT_PATH'])
 
 # create public accesible folder if not exists
 folder_path = "src/server/public"
