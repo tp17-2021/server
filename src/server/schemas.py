@@ -178,6 +178,9 @@ class VoteEncrypted(BaseModel):
     polling_place_id: str
     data: str
 
+class VotesEncrypted(BaseModel):
+    votes: List[VoteEncrypted] = []
+
 class VoteToBeEncrypted(BaseModel):
     public_key_pem: str
     polling_place_id: str

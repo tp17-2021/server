@@ -3,6 +3,8 @@ import json
 from bson import Code
 import traceback
 import base64
+import random
+import string
 
 
 # Cryptography libraries
@@ -17,13 +19,8 @@ from starlette.responses import JSONResponse
 # Server modules
 from src.server import config
 from src.server import schemas
-from src.server.database import DB
-from src.server.schemas import PollingPlace, RequestEncryptionDecryptionTestSchema
+from src.server.database import DB, get_test_parties_with_candidates
 
-# we are in folder 'code' in docker container and there is a copy of src, data and requirements
-CANDIDATES_JSON = "data/nrsr_2020/candidates_transformed.json"
-PARTIES_JSON = "data/nrsr_2020/parties_transformed.json"
-POLLING_PLACES_JSON = "data/nrsr_2020/polling_places.json"
 
 # Create FastAPI router
 router = APIRouter(
@@ -32,51 +29,6 @@ router = APIRouter(
 )
 
 
-async def load_json(path):
-    """
-    Helper to load json file
-    """
-    with open(path, encoding="utf8") as file:
-        return json.load(file)
-
-
-@router.post("/import-data", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
-async def import_data():
-    global CANDIDATES_JSON, PARTIES_JSON
-
-    try:
-        DB.parties.drop()
-        DB.candidates.drop()
-        DB.polling_places.drop()
-
-        parties = await load_json(PARTIES_JSON)
-        for party in parties:
-            await DB.parties.insert_one(party)
-
-        candidates = await load_json(CANDIDATES_JSON)
-        for candidate in candidates:
-            await DB.candidates.insert_one(candidate)
-
-        polling_places = await load_json(POLLING_PLACES_JSON)
-        for polling_place in polling_places:
-            await DB.polling_places.insert_one(polling_place)
-
-        content = {
-            "status": "success",
-            "message": "Voting data was successfully imported"
-        }
-        return content
-
-    except:
-        traceback.print_exc()
-        content = {
-            "status": "failure",
-            "message": "Internal server error"
-        }
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
-
-
-# https://stackoverflow.com/a/48117846
 async def get_keys(collection_name: str):
     """
     Get all keys from provided collection. Helper function that emits all key inside collection using mapreduce. 
@@ -92,22 +44,21 @@ async def schema():
     """
     Get all collections from database
     """
-
     try:
         collections = []
         collection_names = [collection_name for collection_name in await DB.list_collection_names()]    
         for collection_name in collection_names:
             if collection_name != "myresults":
                 collection_keys = await get_keys(collection_name)
-                print(collection_name, collection_keys)
                 collections.append({
                     "name": collection_name,
                     "keys": collection_keys
                 })
-
-        return {
+        
+        content = {
             "collections": collections
         }
+        return content
     
     except:
         traceback.print_exc()
@@ -117,3 +68,121 @@ async def schema():
         }
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
 
+
+async def load_json(path):
+    """
+    Helper to load json file
+    """
+    with open(path, encoding="utf8") as file:
+        return json.load(file)
+
+
+@router.post("/import-data", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
+async def import_data():
+    try:
+        DB.parties.drop()
+        DB.candidates.drop()
+        DB.polling_places.drop()
+        DB.votes.drop()
+
+        parties = await load_json(config.PARTIES_JSON)
+        for party in parties:
+            await DB.parties.insert_one(party)
+
+        candidates = await load_json(config.CANDIDATES_JSON)
+        for candidate in candidates:
+            await DB.candidates.insert_one(candidate)
+
+        polling_places = await load_json(config.POLLING_PLACES_JSON)
+        for polling_place in polling_places:
+            await DB.polling_places.insert_one(polling_place)
+
+        content = {
+            "status": "success",
+            "message": "Data was successfully imported"
+        }
+        return content
+
+    except:
+        traceback.print_exc()
+        content = {
+            "status": "failure",
+            "message": "Internal server error"
+        }
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
+
+
+@router.post("/seed-test-data", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
+async def seed_test_data(number_of_votes: int):
+    try:
+        random.seed(config.SEED)
+
+        DB.test_parties.drop()
+        DB.test_candidates.drop()
+        DB.test_polling_places.drop()
+        DB.test_votes.drop()
+
+        parties = await load_json(config.PARTIES_JSON)
+        for idx, party in enumerate(parties):
+            party["_id"] = str(idx)
+            await DB.test_parties.insert_one(party)
+
+        candidates = await load_json(config.CANDIDATES_JSON)
+        for idx, candidate in enumerate(candidates):
+            candidate["_id"] = str(idx)
+            await DB.test_candidates.insert_one(candidate)
+
+        polling_places = await load_json(config.POLLING_PLACES_JSON)
+        for idx, polling_place in enumerate(polling_places):
+            polling_place["_id"] = str(idx)
+            await DB.test_polling_places.insert_one(polling_place)
+
+        polling_places = [polling_place async for polling_place in DB.test_polling_places.find()]
+        parties = await get_test_parties_with_candidates()
+
+        votes_to_be_inserted = []
+        for idx in range(number_of_votes):
+            vote = {
+                "_id": None,
+                "polling_place_id": None,
+                "data": {
+                    "token": None,
+                    "party_id": None,
+                    "election_id": None,
+                    "candidates_ids": []
+                }
+            }
+            vote["_id"] = str(idx)
+
+            selected_polling_place = random.choice(polling_places)
+            vote["polling_place_id"] = selected_polling_place["_id"]
+
+            selected_token = "".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
+            vote["data"]["token"] = selected_token
+
+            selected_party = random.choice(parties)
+            vote["data"]["party_id"] = selected_party["_id"]
+
+            vote["data"]["election_id"] = config.ELECTION_ID
+
+            selected_candidates = random.sample(selected_party["candidates"], random.randint(0,5))
+            for selected_candidate in selected_candidates:
+                vote["data"]["candidates_ids"].append(selected_candidate["_id"])
+
+            votes_to_be_inserted.append(vote)
+
+        await DB.test_votes.insert_many(votes_to_be_inserted)
+
+        content = {
+            "status": "success",
+            "message": "Test data was successfully seeded"
+        }
+        return content
+        
+    except:
+        traceback.print_exc()
+        content = {
+            "status": "failure",
+            "message": "Internal server error"
+        }
+        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
