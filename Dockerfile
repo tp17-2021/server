@@ -1,4 +1,4 @@
-FROM python:3.10-alpine
+FROM python:3.10-alpine as base
 
 WORKDIR /code
 
@@ -16,4 +16,10 @@ RUN ./rsaelectie-install.sh
 
 COPY ./src /code/src
 
+FROM base as test
+CMD ["pytest", "-rP", "--verbose"]
+# magic command bellow:
+# docker-compose -f docker-compose.test.yml up --build --exit-code-from server
+
+FROM base as build
 CMD [ "uvicorn", "src.server.app:app", "--host", "0.0.0.0", "--port", "80" ]

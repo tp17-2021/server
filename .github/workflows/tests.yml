@@ -1,0 +1,31 @@
+name: Some Kind of Tests
+
+on:
+  pull_request:
+    branches: [ master ]
+    types: [ open ]
+
+  push:
+    branches: [ development ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Check current user
+        run: whoami
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Checkout dev
+        run: git checkout development
+
+      - name: List
+        run: ls -lah
+
+      - name: Tests Docker-Compose
+        run: docker-compose -f docker-compose.test.yml up --build --exit-code-from server
