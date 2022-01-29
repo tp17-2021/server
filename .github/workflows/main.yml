@@ -28,4 +28,4 @@ jobs:
         run: ls -lah
 
       - name: Docker-Compose
-        run: docker-compose -f docker-compose-stage.yml up -d --build
+        run: docker-compose -f docker-compose-stage.yml -p server-deployment up -d --build
