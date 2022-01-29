@@ -5,7 +5,7 @@ import traceback
 import base64
 import random
 import string
-
+from rsaelectie import rsaelectie
 
 # Cryptography libraries
 from Crypto.PublicKey import RSA
@@ -15,11 +15,10 @@ from Crypto.Cipher import PKCS1_OAEP
 from fastapi import APIRouter, status
 from starlette.responses import JSONResponse
 
-
 # Server modules
 from src.server import config
 from src.server import schemas
-from src.server.database import DB, get_test_parties_with_candidates
+from src.server.database import DB, get_parties_with_candidates
 
 
 # Create FastAPI router
@@ -112,33 +111,34 @@ async def import_data():
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
 
 
-@router.post("/seed-test-data", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
-async def seed_test_data(number_of_votes: int):
+@router.post("/seed-data", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
+async def seed_data(number_of_votes: int):
     try:
         random.seed(config.SEED)
 
-        DB.test_parties.drop()
-        DB.test_candidates.drop()
-        DB.test_polling_places.drop()
-        DB.test_votes.drop()
+        DB.parties.drop()
+        DB.candidates.drop()
+        DB.polling_places.drop()
+        DB.votes.drop()
+        DB.key_pairs.drop()
 
         parties = await load_json(config.PARTIES_JSON)
         for idx, party in enumerate(parties):
             party["_id"] = str(idx)
-            await DB.test_parties.insert_one(party)
+            await DB.parties.insert_one(party)
 
         candidates = await load_json(config.CANDIDATES_JSON)
         for idx, candidate in enumerate(candidates):
             candidate["_id"] = str(idx)
-            await DB.test_candidates.insert_one(candidate)
+            await DB.candidates.insert_one(candidate)
 
         polling_places = await load_json(config.POLLING_PLACES_JSON)
         for idx, polling_place in enumerate(polling_places):
             polling_place["_id"] = str(idx)
-            await DB.test_polling_places.insert_one(polling_place)
+            await DB.polling_places.insert_one(polling_place)
 
-        polling_places = [polling_place async for polling_place in DB.test_polling_places.find()]
-        parties = await get_test_parties_with_candidates()
+        polling_places = [polling_place async for polling_place in DB.polling_places.find()]
+        parties = await get_parties_with_candidates()
 
         votes_to_be_inserted = []
         for idx in range(number_of_votes):
@@ -171,7 +171,21 @@ async def seed_test_data(number_of_votes: int):
 
             votes_to_be_inserted.append(vote)
 
-        await DB.test_votes.insert_many(votes_to_be_inserted)
+        await DB.votes.insert_many(votes_to_be_inserted)
+
+        polling_place_id = [polling_place async for polling_place in DB.polling_places.find()][0]["_id"]
+
+        private_key_pem, public_key_pem = await rsaelectie.get_rsa_key_pair(config.KEY_LENGTH)
+
+        private_key_pem = private_key_pem.decode("utf-8")
+        public_key_pem = public_key_pem.decode("utf-8")
+        
+        key_pair = {
+            "polling_place_id": polling_place_id,
+            "private_key_pem": private_key_pem,
+            "public_key_pem": public_key_pem
+        }
+        await DB.key_pairs.insert_one(key_pair)
 
         content = {
             "status": "success",

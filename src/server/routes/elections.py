@@ -14,15 +14,13 @@ from src.server import config
 from src.server import schemas
 from src.server.database import DB
 from src.server.database import get_parties_with_candidates
+from src.server.routes.encryption import encrypt_message
 
 # Create FastAPI router
 router = APIRouter(
     prefix = "/elections",
     tags = ["Elections"],
 )
-
-KEY_PAIRS = None
-PARTIES_WITH_CANDIDATES = None
 
 
 async def save_json(data, path):
@@ -31,14 +29,13 @@ async def save_json(data, path):
 
 
 async def validate_polling_place_id(polling_place_id):
-    global KEY_PAIRS
-
-    if not any([key_pair["polling_place_id"] == polling_place_id for key_pair in KEY_PAIRS]):
+    if not any([key_pair["polling_place_id"] == polling_place_id async for key_pair in DB.key_pairs.find()]):
         return False
     return True
 
 
-async def validate_token(token, tokens):
+async def validate_token(token):
+    tokens = [vote["data"]["token"] async for vote in DB.votes.find()]
     if token in tokens:
         return False
     return True
@@ -74,71 +71,71 @@ async def validate_election_id(election_id):
 
 
 async def validate_votes(request):
-    global KEY_PAIRS, PARTIES_WITH_CANDIDATES
-    
-    if not KEY_PAIRS:
-        KEY_PAIRS = [key_pair async for key_pair in DB.key_pairs.find()]
-
-    if not PARTIES_WITH_CANDIDATES:
-        PARTIES_WITH_CANDIDATES = get_parties_with_candidates()
-
-    tokens_to_be_inserted_into_db = []
+    votes_to_be_inserted = []
     votes = request.votes
     for vote in votes:
+        vote_to_be_inserted = {
+            "polling_place_id": None,
+            "data": None
+        }
+
         vote = dict(vote)
         polling_place_id = vote["polling_place_id"]
+
+        vote_to_be_inserted["polling_place_id"] = polling_place_id
+
+        data_to_be_decrypted = vote["data"]
 
         if not await validate_polling_place_id(polling_place_id):
             return False
 
-        
+        match = False
+        key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
+        for key_pair in key_pairs:
+            if key_pair["polling_place_id"] == polling_place_id:
+                match = True
+                
+                private_key_pem = key_pair["private_key_pem"]
+                data = await rsaelectie.decrypt_vote(private_key_pem, data_to_be_decrypted)
 
-        vote["data"] = dict(vote["data"])
+                vote_to_be_inserted["data"] = data
 
-        # try to decipher data with the private key somehow
-        # vysledok nech je dictionary data, ktory pouzivame nizsie
+        if not match:
+            return False
 
-        data = vote["data"]
         if not await validate_party_and_candidates(data):
             return False
 
         token = data["token"]
-        tokens = [vote["data"]["token"] async for vote in DB.votes.find()]
-        if not await validate_token(token, tokens):
+        if not await validate_token(token):
             return False
-        else:
-            tokens_to_be_inserted_into_db.append({
-                "token": token
-            })
 
         election_id = data["election_id"]
         if not await validate_election_id(election_id):
             return False
 
-    await DB.tokens.insert_many(tokens_to_be_inserted_into_db)
-    
-    return True
+        votes_to_be_inserted.append(vote_to_be_inserted)
+
+    return votes_to_be_inserted
 
 
 @router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
-async def vote(request: schemas.Votes):
+async def vote(request: schemas.VotesEncrypted):
     """
     Process candidate's vote
     """
 
     try:
-        if not await validate_votes(request):
+        votes_to_be_inserted = await validate_votes(request)
+        if not votes_to_be_inserted:
             content = {
                 "status": "failure",
-                "message": "Vote was not processed"
+                "message": "Votes were not processed"
             }
             return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)            
-
-        votes = request.votes
-        for vote in votes:
-            vote = dict(vote)
-            vote["data"] = dict(vote["data"])
-            await DB.votes.insert_one(vote)
+        
+        for vote_to_be_inserted in votes_to_be_inserted:
+            await DB.votes.insert_one(vote_to_be_inserted)
 
         content = {
             "status": "success",
@@ -155,89 +152,19 @@ async def vote(request: schemas.Votes):
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
 
 
-# @router.post("/seed/votes/{number}", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
-# async def seed_votes(number: int):
-#     """
-#     Immitate voting process
-#     """
-
-#     try:
-#         random.seed(1)
-
-#         DB.votes.drop()
-#         DB.tokens.drop()
-
-#         polling_places = [polling_place async for polling_place in DB.polling_places.find()]
-#         parties = await get_parties_with_candidates()
-#         tokens = []
-
-#         tokens_to_be_inserted = []
-#         votes_to_be_inserted = []
-#         for _ in range(number):
-#             selected_polling_place = random.choice(polling_places)
-#             selected_party = random.choice(parties)
-
-#             # token zatial len provizorne, toto nam bude posielat G
-#             token = "".join([random.choice(string.ascii_uppercase + string.digits) for _ in range(5)])
-#             if token not in tokens:
-#                 tokens.append(token)
-
-#                 vote = {
-#                     "polling_place_id": selected_polling_place["_id"],
-#                     "data": {
-#                         "token": token,
-#                         "party_id": selected_party["_id"],
-#                         "election_id": config.ELECTION_ID, #uvidime, kde nakoniec budeme mat election_id ulozene
-#                         "candidates_ids": []
-#                     }
-#                 }
-
-#                 selected_candidates = random.sample(selected_party["candidates"], random.randint(0,5))
-#                 selected_candidates_ids = []
-#                 for selected_candidate in selected_candidates:
-#                     selected_candidates_ids.append(selected_candidate["_id"])
-
-#                 if len(selected_candidates_ids) == len(list(set(selected_candidates_ids))):
-#                     for selected_candidate_id in selected_candidates_ids:
-#                         vote["data"]["candidates_ids"].append(selected_candidate_id)
-
-#                     tokens_to_be_inserted.append({
-#                         "token": token
-#                     })
-#                     votes_to_be_inserted.append(vote)
-
-#         await DB.tokens.insert_many(tokens_to_be_inserted)
-#         await DB.votes.insert_many(votes_to_be_inserted)
-
-#         content = {
-#             "status": "success",
-#             "message": "Votes were successfully seeded"
-#         }
-#         return content
-
-#     except:
-#         traceback.print_exc()
-#         content = {
-#             "status": "failure",
-#             "message": "Internal server error"
-#         }
-#         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
-
-
 @router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
 async def get_voting_data():
     try:
-        # parties with aggregate candidates
-        parties = await get_parties_with_candidates()
+        parties_with_candidates = await get_parties_with_candidates()
         
         # -----
         # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
-        parties = parties[:2]
+        parties_with_candidates = parties_with_candidates[:2]
         # -----
 
-        for party in parties:
-            party["_id"] = str(party["_id"])
-            for candidate in party["candidates"]:
+        for party_with_candidates in parties_with_candidates:
+            party_with_candidates["_id"] = str(party_with_candidates["_id"])
+            for candidate in party_with_candidates["candidates"]:
                 candidate["_id"] = str(candidate["_id"])
         
         # multilingual text for VT application
@@ -258,19 +185,18 @@ async def get_voting_data():
         
         image_paths = glob.glob("data/nrsr_2020/logos/*")
         for image_path in image_paths:
-            for party in parties:
+            for party_with_candidates in parties_with_candidates:
                 image = image_path.split("/")[-1]
-                if image == party["image"]:
+                if image == party_with_candidates["image"]:
                     with open(image_path, "rb") as file:
                         image_bytes = base64.b64encode(file.read())
-                        party["image_bytes"] = image_bytes
+                        party_with_candidates["image_bytes"] = image_bytes
 
-        # combine all the data together
-        data = {
-            "parties": parties,
+        content = {
+            "parties": parties_with_candidates,
             "texts": texts
         }
-        return data
+        return content
     except:
         traceback.print_exc()
         content = {

@@ -90,32 +90,8 @@ class Votes(BaseModel):
             "example": {
                 "votes": [
                     {
-                        "polling_place_id": "61f42c5e0bca18684cc2fe4e",
-                        "data": {
-                            "token": "ABCDEFGHIJ",
-                            "party_id": "61f42c5b0bca18684cc2f385",
-                            "election_id": "todo",
-                            "candidates_ids": [
-                                "61f42c5b0bca18684cc2f39e",
-                                "61f42c5b0bca18684cc2f39f",
-                                "61f42c5b0bca18684cc2f3a0",
-                                "61f42c5b0bca18684cc2f3a1",
-                                "61f42c5b0bca18684cc2f3a2"
-                            ]
-                        }
-                    },
-                    {
-                        "polling_place_id": "polling_place_id2",
-                        "data": {
-                            "token": "token2",
-                            "party_id": "61f3da839f441c468647f4cb",
-                            "election_id": "election_id1",
-                            "candidates_ids": [
-                                "candidate_id1",
-                                "candidate_id2",
-                                "candidate_id3",
-                            ]
-                        }
+                    "polling_place_id": "0",
+                    "data": "se7Yo7ZkiMkW37/n//y29IkT85ieJtFN994xo5bq6Yqx7Bl1aXaTEU+A7SvEXzYYho9A5ssRUpYlpW+6TVVc4VnG0vQzmrlIE6HCebKik5wolVk3Ha123YkRjDP3cp0XNOBIRJYuxLnLXl17vpDeiYCgQzPOMe83pjc2+9jqaUptbFYLbASEqAMHs+FoAORaAzfPS8eIBKQ/dty/Nw88XpSWuK0xthSzxhrN8la7PJ9evUoLp/yUE4KiMyniINw2oNuOPfZ6+9UQwG6RH7iHHAbxlYlAJiv85IviB8vUbeSXVgzJAAf7L/NvxYN6aQcwE6ebyVqyK4KoyZmLNXLG3OZVyBHtOpdGPJwfh5f0T8iu3DmqRNV7G9zakHZhPnkL9c9lyZUoeA6gq09WZDAwcbznqm4DVb6/cFEQm3LcSXW1xD44ONUcmLgKhk63UYtWvQSLbtpTUXk3SLaqhUGpkZ6STOH+IHXlaiFw5klW2DPQSWuC21ot8AM4oSYj8dsI1LKouFYu/4lPfFmdmDqM92Xhb879Ulk1ww18R9tLKOVohpZipkDlaEBcc4YVH6MmCSTyJ1m8pv3d8vNamrAuOiASKNJk/KDG3AN2B1ZnXQxqcdmaULYBE7tyNryDSB8pD4YB4HFKwhV4b8x05mCGDBZF1goZQ8w9R/emJ7B5CNM="
                     }
                 ]
             }
@@ -181,6 +157,20 @@ class VoteEncrypted(BaseModel):
 class VotesEncrypted(BaseModel):
     votes: List[VoteEncrypted] = []
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "votes": [
+                    {
+                    "polling_place_id": "0",
+                    "data": "d24b7wm8wU6uNhOtY4JO9Nf5FeM3ThuFsytURiISkOIHwQAl/etsAxz6YEjQ61oLCi2QTtJtxmp986kB63aqXcsPlnDhcjrQK8tAxuvhIi7Dpq386lzC+bS6Gj7bTA8nRyAPVgbOo2Y9RTrYK3w2Y23iRpRexHoBeENLTeTnoRQ1X9ZDB50mc0CcEwc6DMFmL5+bYj1Q3iaFewRaEom5Cri7+1CoOKY938D24lF1CvtaPrmIJ7ziGM9/C5rq2dm51mJP+ZD+7mlTtT7iB2kUAdzEm5xMyUT+MVQPS65ek9lj6SAcA9vUmTmOb1d1C3IxTf1n0v2G9nGEGcpcaULodRbXBJHb52HNkfxCnD3C6sr/r8HzraxJS1dcpe6PMwuvqrhptMJE0/6eq08QrtyW8eEnQwoXtjbe4sM42RW9Ex4CoLbdohIqyd9377Fv555vc6ZDHneHN29TB2KmjI74SFtg8xYe5QurPq1vVFpX+qD1yUpOeN3h6h6lDMVBLvKQTWVUEYfHWnI8ojFogHq4p7NQiO6HxVkgEk7UdANyGmevW7WAEy4LC5FOhTLjsi5rFIqCbDPQlva170pC7lQYrwP42ugY/qkevJ8xaKNuG3nkbqU9KS1v6kBQh0Z01ayv9/agsJ/8i073BtcmUlhgiedK06WgBp8Ilexv5dt3KtU="
+                    }
+                ]
+            }
+        }
+
+
+
 class VoteToBeEncrypted(BaseModel):
     public_key_pem: str
     polling_place_id: str
@@ -189,18 +179,16 @@ class VoteToBeEncrypted(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA33n5V5YVqcrlfA1hKc+U\nrqOApWNrCRv3qqf1t+HK1wp1G7ljNmeeaeCGTC+utCLcPT0IwPXHi9itnvhlhh0B\n4M2DJlKoxGtLu+ujPS7YTPaky95rJFprhFmGwptCs4rbYfgkHaLBHOVFDB3UXkFL\nnzauqi+g44aOZtzRtwJtMp6PTe1pP5jNfhVNCz21+qZmDNvHRQtkCH+Z+75cWE//\nWVmbi6HK2UMcfJ0nPCYG0ngTh6io5LHmQCa2iYDLF8RRcklhQkRhKwHhbxCI0QVv\nrlZ4jNGi9Ml1zoo0nwkk9s93iGX26wpejv7g+8hnqQpQj5ACG9z+6mq7Vm5VuEDP\nQZ91ECLoo3Q9zorffAECdVKvW+D4p4F2jkclFeXP6dF0onTkN3tiJTinPCxol8ij\n9RgfKYYFuON7OJravA+xStLz45novy7A0n5dqzd4cTay+nF6fpR9/KvE4Tg6RSew\nrgjF1YIgmpgFjhOMvWJ8SnBahkURUTmb4CEgTpyOiRvq28OYxzBctUfCh8//jH95\ndL91AFhWDPtzwpKiIkaNGDwkVz2r123MeKg/MBWGtWdl6I+6mI3qeEAZNgfl5Wzd\nNkR8lqZZ/GcNVHYXbWTGAjw37i2+/V2Twqta7R6l/GEcM4XDhMci6eYtYABj/iJP\n8D4lStZZSaQMzWoeXGuZkakCAwEAAQ==\n-----END PUBLIC KEY-----",
-                "polling_place_id": "61f42c5e0bca18684cc2fe4e",
+                "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAw7d1huCqarX4Cd5E5Iyw\nZIam+QVdf6qg9WBwcT1oBoZtns0KAFMUUGWrKTBpm3Vr/rg1n60KaP2HNMuGeJl9\ncbV3KIOL8lmj5KdM9B3sZB6u5VFSw2Utpka8ro2CxYw+IaGLi6ZWHsMWbikhUFGi\nIiXHKvfYHnvVkK6U6tg4g2MYE/8lgXh/TI1fmPbgMyqDrh2jLDtlJXxc00b8qS3Z\nQOLb8ABgxejjXdDWN7fKJIXDF8cETOh5hKFYWRJCps8vFz2aqiPHpXlWUwtRF46V\nNJEnTjLT9q4/E/KDyqmYvqSC2cbEaMoMjZ4Yo8+jKIH+berZp+gHr79mxar0zJJ4\ncmOEQMptABi5othXQnIbKIjH//PVkjQpO3XreTl+0zFAmfFWozO0DSxrLNiizko7\nLpugdIxAjnz3mOGQWh6LCb+VeD6es2Qiufa0M1ALL+aYaIdTCKYHQj2wAQT8691t\nkstofK5wncsgoojEF0o5JpimElpHvz2Slyj4A8mKR+4FeQ3Ytda0IaD7MaW783DM\nRjYV23a5e5EQU+vHtxOwMQN/U4a48dNsGdMm4x7HuszcJW3xVmd/Oa6bfm9preMQ\n0ABZn4blVEGDbGiVsPQ9OL7X001ckC7cdMoT5g0pd7RQrH8B7j2dbYRcIAfUj94l\nfxuyzOFKA3RzPneKCkyHFw0CAwEAAQ==\n-----END PUBLIC KEY-----",
+                "polling_place_id": "0",
                 "data": {
-                    "token": "ABCDEFGHIJ",
-                    "party_id": "61f42c5b0bca18684cc2f385",
-                    "election_id": "todo",
+                    "token": "fjosjfidsw",
+                    "party_id": "10",
+                    "election_id": "election_id",
                     "candidates_ids": [
-                        "61f42c5b0bca18684cc2f39e",
-                        "61f42c5b0bca18684cc2f39f",
-                        "61f42c5b0bca18684cc2f3a0",
-                        "61f42c5b0bca18684cc2f3a1",
-                        "61f42c5b0bca18684cc2f3a2"
+                        "1158",
+                        "1077",
+                        "1191",
                     ]
                 }
             }
