@@ -137,7 +137,7 @@ Process candidate's vote
 
 |Name|In|Type|Required|Description|
 |---|---|---|---|---|
-|body|body|[RequestServerVoteSchema](#schemarequestservervoteschema)|true|none|
+|body|body|[Votes](#schemaVotes)|true|none|
 
 > Example responses
 
@@ -700,12 +700,12 @@ RequestEncryptionDecryptionTestSchema
 
 *None*
 
-<h2 id="tocS_RequestServerVoteSchema">RequestServerVoteSchema</h2>
+<h2 id="tocS_Votes">Votes</h2>
 <!-- backwards compatibility -->
-<a id="schemarequestservervoteschema"></a>
-<a id="schema_RequestServerVoteSchema"></a>
-<a id="tocSrequestservervoteschema"></a>
-<a id="tocsrequestservervoteschema"></a>
+<a id="schemaVotes"></a>
+<a id="schema_Votes"></a>
+<a id="tocSVotes"></a>
+<a id="tocsVotes"></a>
 
 ```json
 {
@@ -744,13 +744,13 @@ RequestEncryptionDecryptionTestSchema
 
 ```
 
-RequestServerVoteSchema
+Votes
 
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
-|votes|[[ServerVote](#schemaservervote)]|true|none|none|
+|votes|[[Vote](#schemaservervote)]|true|none|none|
 |office_id|string|true|none|none|
 
 <h2 id="tocS_ResponseDatabaseSchema">ResponseDatabaseSchema</h2>
@@ -804,10 +804,10 @@ ResponseServerVoteSchema
 |---|---|---|---|---|
 |status|string|true|none|none|
 |message|string|true|none|none|
-|votes|[[ServerVote](#schemaservervote)]|false|none|none|
+|votes|[[Vote](#schemaservervote)]|false|none|none|
 |office_id|string|true|none|none|
 
-<h2 id="tocS_ServerCandidate">ServerCandidate</h2>
+<h2 id="tocS_ServerCandidate">Candidate</h2>
 <!-- backwards compatibility -->
 <a id="schemaservercandidate"></a>
 <a id="schema_ServerCandidate"></a>
@@ -821,7 +821,7 @@ ResponseServerVoteSchema
 
 ```
 
-ServerCandidate
+Candidate
 
 ### Properties
 
@@ -829,7 +829,7 @@ ServerCandidate
 |---|---|---|---|---|
 |candidate_id|string|true|none|none|
 
-<h2 id="tocS_ServerVote">ServerVote</h2>
+<h2 id="tocS_ServerVote">Vote</h2>
 <!-- backwards compatibility -->
 <a id="schemaservervote"></a>
 <a id="schema_ServerVote"></a>
@@ -854,14 +854,14 @@ ServerCandidate
 
 ```
 
-ServerVote
+Vote
 
 ### Properties
 
 |Name|Type|Required|Restrictions|Description|
 |---|---|---|---|---|
 |token|string|true|none|none|
-|candidates|[[ServerCandidate](#schemaservercandidate)]|false|none|none|
+|candidates|[[Candidate](#schemaservercandidate)]|false|none|none|
 |party_id|string|true|none|none|
 |election_id|string|true|none|none|
 |office_id|string|true|none|none|

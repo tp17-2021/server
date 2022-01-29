@@ -14,8 +14,8 @@ from src.server import config as c
 
 # Create FastAPI router
 router = APIRouter(
-    prefix="/statistics",
-    tags=["Statistics"],
+    prefix = "/statistics",
+    tags = ["Statistics"],
 )
 
 
@@ -61,7 +61,7 @@ def retype_object_id_to_str(data):
 @router.get('/final')
 async def statistics_final():
     votes_n = len(list(DB.votes.find({})))
-    vote_participation = round(votes_n / c.ELIGIBLE_VOTERS_N, 5)
+    vote_participation = round(votes_n / c.ELIGIBLE_VOTERS, 5)
 
     offices_open_n = 0 #todo function
     offices_n = len(list(DB.election_offices.find({})))
@@ -157,7 +157,7 @@ async def statistics_final():
         'message': 'Voting final results',
         'statistics': {
             "votes": votes_n,
-            "eligible_voters": c.ELIGIBLE_VOTERS_N,
+            "eligible_voters": c.ELIGIBLE_VOTERS,
             "vote_participation": vote_participation,
             "offices": offices_n,
             "open_offices": offices_open_n,

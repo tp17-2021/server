@@ -4,29 +4,19 @@ from typing import List
 
 
 class Message(BaseModel):
+    status: str
     message: str
-
 
 class Collection(BaseModel):
     name: str
     keys: List[str] = []
 
-
-class ResponseDatabaseSchema(BaseModel):
-    status: str
-    message: str
+class Collections(BaseModel):
     collections: List[Collection] = []
 
-# class Vote(BaseModel):
-#     token: str
-#     candidate_id: str
-#     party_id: str
-#     office_id: str
-#     election_id: str
-
-
 # TODO pridat Object id fields potom
-class ServerPollingPlace(BaseModel):
+# naozaj to treba?
+class PollingPlace(BaseModel):
     region_code: int
     region_name: str
     administrative_area_code: int
@@ -49,174 +39,176 @@ class ServerPollingPlace(BaseModel):
                 "county_name": "Bratislava I",
                 "municipality_code": 528595,
                 "municipality_name": "Bratislava - Staré Mesto",
-                "polling_place_number": 5,
-                "registered_voters_count": 1362
+                "polling_place_number": 1,
+                "registered_voters_count": 1234
             }
         }
 
-
-class ServerCandidate(BaseModel):
-    candidate_id: str
-
-# server_vote_example = None
-
-
-class ServerVote(BaseModel):
+class Data(BaseModel):
     token: str
-    candidates: List[ServerCandidate] = []
     party_id: str
     election_id: str
-    office_id: str
+    candidates_ids: List[str] = []
+
+class Vote(BaseModel):
+    polling_place_id: str
+    data: Data
 
     class Config:
         schema_extra = {
             "example": {
-                "token": "token1",
-                "candidates": [
-                    {
-                        "candidate_id": "candidate_id1"
-                    },
-                    {
-                        "candidate_id": "candidate_id2"
-                    }
-                ],
-                "party_id": "party_id1",
-                "election_id": "election_id1",
-                "office_id": "office_id1"
+                "polling_place_id": "61f42c5e0bca18684cc2fe4e",
+                "data": {
+                    "token": "ABCDEFGHIJ",
+                    "party_id": "61f42c5b0bca18684cc2f385",
+                    "election_id": "todo",
+                    "candidates_ids": [
+                        "61f42c5b0bca18684cc2f39e",
+                        "61f42c5b0bca18684cc2f39f",
+                        "61f42c5b0bca18684cc2f3a0",
+                        "61f42c5b0bca18684cc2f3a1",
+                        "61f42c5b0bca18684cc2f3a2"
+                    ]
+                }
             }
         }
 
 
-class RequestServerVoteSchema(BaseModel):
-    votes: List[ServerVote] = Field(...)
-    office_id: str = Field(...)
+class Votes(BaseModel):
+    votes: List[Vote] = []
 
-    @validator('votes')
-    def name_must_contain_space(cls, votes):
-        if not len(votes):
-            raise ValueError('cannot be empty')
-        return votes
+    # @validator('votes')
+    # def name_must_contain_space(cls, votes):
+    #     if not len(votes):
+    #         raise ValueError('cannot be empty')
+    #     return votes
 
     class Config:
-        extra = Extra.forbid
+        # extra = Extra.forbid
+
         schema_extra = {
             "example": {
                 "votes": [
                     {
-                        "token": "token1",
-                        "candidates": [
-                            {
-                                "candidate_id": "candidate_id1"
-                            },
-                            {
-                                "candidate_id": "candidate_id2"
-                            }
-                        ],
-                        "party_id": "party_id1",
-                        "election_id": "election_id1",
-                        "office_id": "office_id1"
+                        "polling_place_id": "61f42c5e0bca18684cc2fe4e",
+                        "data": {
+                            "token": "ABCDEFGHIJ",
+                            "party_id": "61f42c5b0bca18684cc2f385",
+                            "election_id": "todo",
+                            "candidates_ids": [
+                                "61f42c5b0bca18684cc2f39e",
+                                "61f42c5b0bca18684cc2f39f",
+                                "61f42c5b0bca18684cc2f3a0",
+                                "61f42c5b0bca18684cc2f3a1",
+                                "61f42c5b0bca18684cc2f3a2"
+                            ]
+                        }
                     },
                     {
-                        "token": "token2",
-                        "candidates": [
-                            {
-                                "candidate_id": "candidate_id1"
-                            },
-                            {
-                                "candidate_id": "candidate_id2"
-                            }
-                        ],
-                        "party_id": "party_id1",
-                        "election_id": "election_id1",
-                        "office_id": "office_id1"
+                        "polling_place_id": "polling_place_id2",
+                        "data": {
+                            "token": "token2",
+                            "party_id": "61f3da839f441c468647f4cb",
+                            "election_id": "election_id1",
+                            "candidates_ids": [
+                                "candidate_id1",
+                                "candidate_id2",
+                                "candidate_id3",
+                            ]
+                        }
                     }
-                ],
-                "office_id": "office_id1"
+                ]
             }
         }
 
 
-class RequestEncryptionDecryptionTestSchema(BaseModel):
-    class Config:
-        extra = "allow"
-        schema_extra = {
-            "example": {
-                "some text field": "Hi there!",
-                "some number": 123,
-                "some list": [],
-                "some dict": {}
-            }
-        }
+class Text(BaseModel):
+    sk: str
+    en: str
 
+class Texts(BaseModel):
+    elections_name_short: Text
+    elections_name_long: Text
+    election_date: Text
 
-class ResponseServerVoteSchema(BaseModel):
-    status: str
-    message: str
-    votes: List[ServerVote] = []
-    office_id: str
-
-# kandidat
-# strana
-# vote
-
-
-# pre databazu
-
-# DatabaseCandidate(BaseModel)
-    # sample_candidate = {
-    #     "_id": random.randint(10**6, 10**7), ObjectId (str)
-    #     "order" : random.randint(10, 10000), int
-    #     "first_name" : "Jozef",
-    #     "last_name" : "Králik",
-    #     "middle_names" : "Jožko",
-    #     "degrees_before" : "Ing. Mgr.", List[str] = []
-    #     "degrees_after" : "PhD.", str
-    #     "personal_number" : "EL180968", str
-    #     "occupation": "Calisthenics enthusiast, crypto trader, physicist, daš si hrozienko?", str/trxt
-    #     "age" : random.randint(18, 110), int
-    #     "residence": "Prievidza", str
-    #     "party_id" : "1" str/int
-    # }
-
-# Party
-# candidates: List[Cand]
-
-# ResponseDatabaseData(BaseModel)
-# parties = List[Party]
-
-
-class DatabaseParty(BaseModel):
-    _id: str  # todo: transform from str to ObjectId
+class Candidate(BaseModel):
+    _id: str
+    party_number: str
+    order: int
+    first_name: str
+    last_name: str
+    degrees_before: str
+    age: int
+    occupation: str
+    residence: str
+    
+class Party(BaseModel):
+    _id: str
+    party_number: int
     name: str
     abbreviation: str
     image: str
+    image_bytes: str
+    candidates: List[Candidate] = []
+
+class VotingData(BaseModel):
+    parties: List[Party] = []
+    texts: Texts
+
+class KeyPair(BaseModel):
+    polling_place_id: str
+    private_key_pem: str
+    public_key_pem: str
+
+class KeyPairs(BaseModel):
+    key_pairs: List[KeyPair] = []
+
+class RequestEncryptionDecryptionTestSchema(BaseModel):
+    message: str
+
+    class Config:
+        # extra = "allow"
+        schema_extra = {
+            "example": {
+                "message": "Hi there!",
+            }
+        }
+
+class VoteEncrypted(BaseModel):
+    polling_place_id: str
+    data: str
+
+class VoteToBeEncrypted(BaseModel):
+    public_key_pem: str
+    polling_place_id: str
+    data: Data
 
     class Config:
         schema_extra = {
             "example": {
-                "_id": "19",
-                "name": "SMER - sociálna demokracia",
-                "abbreviation": "SMER - SD",
-                "image": "don_roberto_logo.jpg"
+                "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA33n5V5YVqcrlfA1hKc+U\nrqOApWNrCRv3qqf1t+HK1wp1G7ljNmeeaeCGTC+utCLcPT0IwPXHi9itnvhlhh0B\n4M2DJlKoxGtLu+ujPS7YTPaky95rJFprhFmGwptCs4rbYfgkHaLBHOVFDB3UXkFL\nnzauqi+g44aOZtzRtwJtMp6PTe1pP5jNfhVNCz21+qZmDNvHRQtkCH+Z+75cWE//\nWVmbi6HK2UMcfJ0nPCYG0ngTh6io5LHmQCa2iYDLF8RRcklhQkRhKwHhbxCI0QVv\nrlZ4jNGi9Ml1zoo0nwkk9s93iGX26wpejv7g+8hnqQpQj5ACG9z+6mq7Vm5VuEDP\nQZ91ECLoo3Q9zorffAECdVKvW+D4p4F2jkclFeXP6dF0onTkN3tiJTinPCxol8ij\n9RgfKYYFuON7OJravA+xStLz45novy7A0n5dqzd4cTay+nF6fpR9/KvE4Tg6RSew\nrgjF1YIgmpgFjhOMvWJ8SnBahkURUTmb4CEgTpyOiRvq28OYxzBctUfCh8//jH95\ndL91AFhWDPtzwpKiIkaNGDwkVz2r123MeKg/MBWGtWdl6I+6mI3qeEAZNgfl5Wzd\nNkR8lqZZ/GcNVHYXbWTGAjw37i2+/V2Twqta7R6l/GEcM4XDhMci6eYtYABj/iJP\n8D4lStZZSaQMzWoeXGuZkakCAwEAAQ==\n-----END PUBLIC KEY-----",
+                "polling_place_id": "61f42c5e0bca18684cc2fe4e",
+                "data": {
+                    "token": "ABCDEFGHIJ",
+                    "party_id": "61f42c5b0bca18684cc2f385",
+                    "election_id": "todo",
+                    "candidates_ids": [
+                        "61f42c5b0bca18684cc2f39e",
+                        "61f42c5b0bca18684cc2f39f",
+                        "61f42c5b0bca18684cc2f3a0",
+                        "61f42c5b0bca18684cc2f3a1",
+                        "61f42c5b0bca18684cc2f3a2"
+                    ]
+                }
             }
         }
 
-
-# Elections
-# poskytnut configurak
-# zavolit podla schemy dany hlas (netreba overat) + vlozit do DB
+class VoteDecrypted(BaseModel):
+    polling_place_id: str
+    data: Data
 
 
 # Statistics
 # jednoduche vyhodnotenie
 # porataj pogroupovane podla can Id a party id
 # pomenovanie na predbezne (urcene len pre G a pre Admina + TV) / vysledky ()
-
-
-# schemas naming convention
-
-# Resquest or Response
-# <Request/Response><Elections/Statistics/Database/Server/...><What Optional><Schema>
-
-# Nested class
-# <Elections/Statistics/Database/Server/...><What>
