@@ -7,6 +7,7 @@ services:
       # The path to the service's repository
       context: .
       dockerfile: ./Dockerfile
+      target: build
     # bind the service's exposed port 80 to the host's 8222
     ports:
       - 8222:80
@@ -23,7 +24,7 @@ services:
   server-db:
     # use existing mongo image from dockerhub
     image: mongo
-    container_name: server-db
+    # container_name: server-db
     ports:
       - 8223:27017
     restart: unless-stopped
