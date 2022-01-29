@@ -24,7 +24,7 @@ services:
   server-db:
     # use existing mongo image from dockerhub
     image: mongo
-    container_name: server-db
+    # container_name: server-db
     ports:
       - 8200:27017
     restart: unless-stopped
