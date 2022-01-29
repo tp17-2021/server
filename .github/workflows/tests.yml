@@ -21,8 +21,8 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Checkout dev
-        run: git checkout development
+      - name: Where/When am I in context of the GIT?
+        run: git status
 
       - name: List
         run: ls -lah
