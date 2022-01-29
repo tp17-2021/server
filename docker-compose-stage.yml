@@ -29,7 +29,7 @@ services:
     restart: unless-stopped
     # use server-db-data directory as volume to store data
     volumes:
-      - ./server-db-data:/data/db
+      - /mnt/disk_2/docker_db_volumes/server-db-data:/data/db
     # export useful environment variables to the service's container
     environment:
       - PUID=1000
