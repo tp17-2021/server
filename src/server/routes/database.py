@@ -45,11 +45,9 @@ async def import_data():
     global CANDIDATES_JSON, PARTIES_JSON
 
     try:
-        # drop all tables
         DB.parties.drop()
         DB.candidates.drop()
         DB.polling_places.drop()
-        DB.votes.drop()
 
         parties = await load_json(PARTIES_JSON)
         for party in parties:

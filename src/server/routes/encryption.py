@@ -9,6 +9,8 @@ import base64
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 
+from rsaelectie import rsaelectie
+
 # # FastAPI modules
 from fastapi import APIRouter, status
 from starlette.responses import JSONResponse
@@ -36,7 +38,7 @@ async def get_rsa_key_pair():
 
     private_key_pem = private_key.exportKey()
     public_key_pem = public_key.exportKey()
-    
+
     return private_key_pem, public_key_pem
 
 
@@ -62,7 +64,7 @@ async def create_key_pairs_for_polling_places():
         for polling_place in polling_places:
             polling_place_id = str(polling_place["_id"])
 
-            private_key_pem, public_key_pem = await get_rsa_key_pair()
+            private_key_pem, public_key_pem = await rsaelectie.get_rsa_key_pair(config.KEY_LENGTH)
 
             private_key_pem = private_key_pem.decode("utf-8")
             public_key_pem = public_key_pem.decode("utf-8")

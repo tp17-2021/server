@@ -1,3 +1,3 @@
 ELIGIBLE_VOTERS = 1000
-ELECTION_ID = "todo"
+ELECTION_ID = "election_id"
 KEY_LENGTH = 4096

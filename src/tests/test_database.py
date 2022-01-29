@@ -1,8 +1,25 @@
-# from src.server.app import app
-# from src.server.database import DB
-# from fastapi.testclient import TestClient
 
-# client = TestClient(app)
+from src.tests import test_env
+import os
+from unittest import mock 
+
+with mock.patch.dict(os.environ, test_env.envs):
+    from src.server.app import app
+    from src.server.database import DB
+
+
+from fastapi.testclient import TestClient
+
+client = TestClient(app)
+
+import pytest
+
+def test_schema():
+    response = client.get("/database/schema")
+    print(response.json())
+    assert response.status_code == 200
+
+
 
 
 # def test_vote_endpoint_invalid_party_id():

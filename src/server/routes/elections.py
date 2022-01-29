@@ -1,9 +1,9 @@
 import json
 import glob
 import base64
-import random
 import string
 import random
+
 
 import traceback
 from fastapi import status, APIRouter
@@ -21,6 +21,7 @@ router = APIRouter(
 
 KEY_PAIRS = None
 PARTIES_WITH_CANDIDATES = None
+
 
 async def save_json(data, path):
     with open(f"{path}.json", "w", encoding="utf8") as file:
@@ -169,32 +170,52 @@ async def seed_votes(number: int):
     """
 
     try:
-        parties = await get_parties_with_candidates()
+        random.seed(1)
 
-        data = []
+        DB.votes.drop()
+        DB.tokens.drop()
+
+        polling_places = [polling_place async for polling_place in DB.polling_places.find()]
+        parties = await get_parties_with_candidates()
+        tokens = []
+
+        tokens_to_be_inserted = []
+        votes_to_be_inserted = []
         for _ in range(number):
+            selected_polling_place = random.choice(polling_places)
             selected_party = random.choice(parties)
 
             # token zatial len provizorne, toto nam bude posielat G
-            token = "".join([random.choice(string.ascii_uppercase + string.digits) for _ in range(10)])
+            token = "".join([random.choice(string.ascii_uppercase + string.digits) for _ in range(5)])
+            if token not in tokens:
+                tokens.append(token)
 
-            vote = {
-                "polling_place_id": "todo",
-                "data": {
-                    "token": token,
-                    "party_id": selected_party["_id"],
-                    "election_id": "todo",
-                    "candidates_ids": []
+                vote = {
+                    "polling_place_id": selected_polling_place["_id"],
+                    "data": {
+                        "token": token,
+                        "party_id": selected_party["_id"],
+                        "election_id": config.ELECTION_ID, #uvidime, kde nakoniec budeme mat election_id ulozene
+                        "candidates_ids": []
+                    }
                 }
-            }
 
-            selected_candidates = random.sample(selected_party["candidates"], 5)
-            for selected_candidate in selected_candidates:
-                vote["data"]["candidates_ids"].append(selected_candidate["_id"])
+                selected_candidates = random.sample(selected_party["candidates"], random.randint(0,5))
+                selected_candidates_ids = []
+                for selected_candidate in selected_candidates:
+                    selected_candidates_ids.append(selected_candidate["_id"])
 
-            data.append(vote)
-        
-        DB.votes.insert_many(data)
+                if len(selected_candidates_ids) == len(list(set(selected_candidates_ids))):
+                    for selected_candidate_id in selected_candidates_ids:
+                        vote["data"]["candidates_ids"].append(selected_candidate_id)
+
+                    tokens_to_be_inserted.append({
+                        "token": token
+                    })
+                    votes_to_be_inserted.append(vote)
+
+        await DB.tokens.insert_many(tokens_to_be_inserted)
+        await DB.votes.insert_many(votes_to_be_inserted)
 
         content = {
             "status": "success",

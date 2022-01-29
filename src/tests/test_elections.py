@@ -1,5 +1,11 @@
-from src.server.app import app
 from fastapi.testclient import TestClient
+
+from src.tests import test_env
+import os
+from unittest import mock 
+
+with mock.patch.dict(os.environ, test_env.envs):
+    from src.server.app import app
 
 client = TestClient(app)
 

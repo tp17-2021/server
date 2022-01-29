@@ -13,10 +13,6 @@ from src.server.routes.statistics import router as StatisticsRouter
 # Create FastAPI app
 app = FastAPI(root_path=os.environ['ROOT_PATH'])
 
-# when testing
-# app = FastAPI(root_path="/server")
-
-
 # moze sa to hodit do buducna (exporty...)
 # # Create public accesible folder if not exists
 # folder_path = "src/server/public"

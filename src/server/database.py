@@ -6,7 +6,3 @@ CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
 )
 DB = CLIENT[os.environ["SERVER_DB_NAME"]]
 
-
-# when testing
-# CLIENT = motor.motor_asyncio.AsyncIOMotorClient("server-db:27017")
-# DB = CLIENT["server-db"]
