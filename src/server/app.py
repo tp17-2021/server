@@ -11,7 +11,11 @@ from src.server.routes.encryption import router as EncryptionRouter
 from src.server.routes.statistics import router as StatisticsRouter
 
 # Create FastAPI app
-app = FastAPI(root_path=os.environ['ROOT_PATH'])
+# development
+# app = FastAPI(root_path=os.environ['ROOT_PATH'])
+
+# testing
+app = FastAPI(root_path="")
 
 # moze sa to hodit do buducna (exporty...)
 # # Create public accesible folder if not exists

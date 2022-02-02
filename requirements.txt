@@ -8,3 +8,4 @@ requests
 pytest
 pycryptodome==3.11.0
 motor
+httpx

@@ -1,24 +1,20 @@
+# from src.server.database import DB
 
-from src.tests import test_env
-import os
-from unittest import mock 
-
-with mock.patch.dict(os.environ, test_env.envs):
-    from src.server.app import app
-    from src.server.database import DB
-
-
-from fastapi.testclient import TestClient
-
-client = TestClient(app)
+# from fastapi.testclient import TestClient
 
 import pytest
+from httpx import AsyncClient
 
-def test_schema():
-    response = client.get("/database/schema")
-    print(response.json())
+from src.server.app import app
+
+
+@pytest.mark.asyncio
+async def test_get():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        response = await ac.get("/database/schema")
+
+    print(response)
     assert response.status_code == 200
-
 
 
 

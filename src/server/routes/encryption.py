@@ -46,14 +46,16 @@ async def create_key_pairs_for_polling_places():
 
         # --- toto potom odstranit
         count = 0
+        N = 0
         # ---
-        key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
+        
+        key_pairs_polling_place_ids = [key_pair["polling_place_id"] async for key_pair in DB.key_pairs.find()]
         polling_places = [polling_place async for polling_place in DB.polling_places.find()]
+
         for polling_place in polling_places:
             polling_place_id = polling_place["_id"]
-            if polling_place_id not in [key_pair["polling_place_id"] for key_pair in key_pairs]:
-
-                private_key_pem, public_key_pem = await rsaelectie.get_rsa_key_pair(config.KEY_LENGTH)
+            if polling_place_id not in key_pairs_polling_place_ids:
+                private_key_pem, public_key_pem = await rsaelectie.get_rsa_key_pair()
 
                 private_key_pem = private_key_pem.decode("utf-8")
                 public_key_pem = public_key_pem.decode("utf-8")
@@ -67,7 +69,7 @@ async def create_key_pairs_for_polling_places():
             
             # --- toto potom odstranit
             count += 1
-            if count > 0:
+            if count > N:
                 break
             # ---
 
@@ -91,16 +93,13 @@ async def test_encrypt_vote(request: schemas.VoteToBeEncrypted):
     try:
         public_key_pem = request.public_key_pem
 
-        polling_place_id = request.polling_place_id
-
-        data_to_be_encrypted = request.data
+        data_to_be_encrypted = request.vote
         data_to_be_encrypted = dict(data_to_be_encrypted)
 
-        encrypted_data = await rsaelectie.encrypt_vote(public_key_pem, data_to_be_encrypted)
+        encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, data_to_be_encrypted)
 
         content = {
-            "polling_place_id": polling_place_id,
-            "data": encrypted_data
+            "encrypted_vote": encrypted_vote
         }
         return content
         
@@ -113,25 +112,14 @@ async def test_encrypt_vote(request: schemas.VoteToBeEncrypted):
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
 
 
-@router.post("/test-decrypt-vote", response_model=schemas.VoteDecrypted, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
-async def test_decrypt_vote(request: schemas.VoteEncrypted):
+@router.post("/test-decrypt-vote", response_model=schemas.Vote, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
+async def test_decrypt_vote(request: schemas.VoteToBeDecrypted):
     try:
-        polling_place_id = request.polling_place_id
-        
-        data_to_be_decrypted = request.data
+        private_key_pem = request.private_key_pem
+        vote_to_be_decrypted = request.encrypted_vote
 
-        key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
-        for key_pair in key_pairs:
-            if key_pair["polling_place_id"] == polling_place_id:
-
-                private_key_pem = key_pair["private_key_pem"]
-                decrypted_data = await rsaelectie.decrypt_vote(private_key_pem, data_to_be_decrypted)
-
-                content = {
-                    "polling_place_id": polling_place_id,
-                    "data": decrypted_data
-                }
-                return content
+        vote = await rsaelectie.decrypt_vote(private_key_pem, vote_to_be_decrypted)
+        return vote
 
     except:
         traceback.print_exc()

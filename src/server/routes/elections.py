@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from src.server import config
 from src.server import schemas
 from src.server.database import DB
-from src.server.database import get_parties_with_candidates
+from src.server.database import get_parties_with_candidates, get_max_id
 from src.server.routes.encryption import encrypt_message
 
 # Create FastAPI router
@@ -35,14 +35,14 @@ async def validate_polling_place_id(polling_place_id):
 
 
 async def validate_token(token):
-    tokens = [vote["data"]["token"] async for vote in DB.votes.find()]
+    tokens = [vote["token"] async for vote in DB.votes.find()]
     if token in tokens:
         return False
     return True
 
 
-async def validate_party_and_candidates(data):
-    candidates_ids = data["candidates_ids"]
+async def validate_party_and_candidates(vote):
+    candidates_ids = vote["candidates_ids"]
 
     if len(candidates_ids) > 5:
         return False
@@ -52,7 +52,7 @@ async def validate_party_and_candidates(data):
 
     parties = await get_parties_with_candidates()
     for party in parties:
-        if str(party["_id"]) == data["party_id"]:
+        if str(party["_id"]) == vote["party_id"]:
             candidate_match_count = 0
             for candidate in party["candidates"]:
                 if str(candidate["_id"]) in candidates_ids:
@@ -72,49 +72,43 @@ async def validate_election_id(election_id):
 
 async def validate_votes(request):
     votes_to_be_inserted = []
-    votes = request.votes
-    for vote in votes:
-        vote_to_be_inserted = {
-            "polling_place_id": None,
-            "data": None
-        }
 
-        vote = dict(vote)
-        polling_place_id = vote["polling_place_id"]
+    polling_place_id = request.polling_place_id
+    if not await validate_polling_place_id(polling_place_id):
+        return False
 
-        vote_to_be_inserted["polling_place_id"] = polling_place_id
+    key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
 
-        data_to_be_decrypted = vote["data"]
+    max_id = await get_max_id("votes")
 
-        if not await validate_polling_place_id(polling_place_id):
-            return False
-
+    encrypted_votes = request.votes
+    for idx, encrypted_vote in enumerate(encrypted_votes):
         match = False
-        key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
         for key_pair in key_pairs:
             if key_pair["polling_place_id"] == polling_place_id:
-                match = True
-                
                 private_key_pem = key_pair["private_key_pem"]
-                data = await rsaelectie.decrypt_vote(private_key_pem, data_to_be_decrypted)
+                decrypted_vote = await rsaelectie.decrypt_vote(private_key_pem, encrypted_vote)
+                decrypted_vote["polling_place_id"] = polling_place_id
+                decrypted_vote["_id"] = max_id + 1 + idx
 
-                vote_to_be_inserted["data"] = data
+                match = True
+                break
 
         if not match:
             return False
 
-        if not await validate_party_and_candidates(data):
+        if not await validate_party_and_candidates(decrypted_vote):
             return False
 
-        token = data["token"]
+        token = decrypted_vote["token"]
         if not await validate_token(token):
             return False
 
-        election_id = data["election_id"]
+        election_id = decrypted_vote["election_id"]
         if not await validate_election_id(election_id):
             return False
 
-        votes_to_be_inserted.append(vote_to_be_inserted)
+        votes_to_be_inserted.append(decrypted_vote)
 
     return votes_to_be_inserted
 
@@ -161,11 +155,6 @@ async def get_voting_data():
         # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
         parties_with_candidates = parties_with_candidates[:2]
         # -----
-
-        for party_with_candidates in parties_with_candidates:
-            party_with_candidates["_id"] = str(party_with_candidates["_id"])
-            for candidate in party_with_candidates["candidates"]:
-                candidate["_id"] = str(candidate["_id"])
         
         # multilingual text for VT application
         texts = {
