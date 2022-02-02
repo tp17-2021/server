@@ -16,10 +16,15 @@ RUN ./rsaelectie-install.sh
 
 COPY ./src /code/src
 
+COPY ./tests /code/tests
+
 FROM base as test
-CMD ["pytest", "-rP", "--verbose"]
+
+COPY ./seed_and_test.sh ./seed_and_test.sh
+
+CMD ["./seed_and_test.sh"]
 # magic command bellow:
-# docker-compose -f docker-compose.test.yml up --build --exit-code-from server
+# docker-compose -f docker-compose.test.yml up --build --exit-code-from server --force-recreate
 
 FROM base as build
 CMD [ "uvicorn", "src.server.app:app", "--host", "0.0.0.0", "--port", "80" ]

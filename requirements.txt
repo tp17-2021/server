@@ -4,8 +4,12 @@ uvicorn>=0.15.0,<0.16.0
 pymongo>=3.12.1
 prettyprint
 aiofiles
-requests
-pytest
 pycryptodome==3.11.0
 motor
-httpx
+requests
+# httpx
+# pytest-asyncio==0.17.2
+# asyncpg==0.22.0
+
+# dev
+pytest-asyncio

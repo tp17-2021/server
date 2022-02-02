@@ -1,4 +1,4 @@
-version: "3.3"
+version: "3.8"
 
 services:
   # The name of the service to run
@@ -9,7 +9,7 @@ services:
       dockerfile: ./Dockerfile
       target: test
     # bind the service's exposed port 80 to the host's 8222
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       - server-db
     # export useful environment variables to the service
