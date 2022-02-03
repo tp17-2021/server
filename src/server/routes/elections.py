@@ -3,6 +3,7 @@ import glob
 import base64
 import string
 import random
+from pytest import yield_fixture
 
 from rsaelectie import rsaelectie
 
@@ -23,8 +24,7 @@ router = APIRouter(
 
 
 async def validate_polling_place_id(polling_place_id):
-    polling_place_ids = [doc["polling_place_id"] async for doc in DB.key_pairs.find({}, {"polling_place_id": 1, "_id": 0})]
-    if polling_place_id not in polling_place_ids:
+    if await DB.key_pairs.find_one({"polling_place_id":polling_place_id}) is None:
         content = {
             "status": "failure",
             "message": "Invalid polling place id",
@@ -84,8 +84,7 @@ async def validate_party_and_candidates(vote):
 
 
 async def validate_token(token):
-    tokens = [doc["token"] async for doc in DB.votes.find({}, {"token":1, "_id":0})]    
-    if token in tokens:
+    if await DB.votes.find_one({"token":token}) is not None:
         content = {
             "status": "failure",
             "message": "Invalid token",

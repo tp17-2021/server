@@ -45,7 +45,6 @@ async def schema():
     """
     try:
         collections = []
-        # collection_names = [collection_name for collection_name in await DB.list_collection_names()]    
         collection_names = [collection_name for collection_name in await DB.list_collection_names()]    
         for collection_name in collection_names:
             if collection_name != "myresults":
