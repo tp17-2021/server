@@ -13,3 +13,4 @@ requests
 
 # dev
 pytest-asyncio
+httpx

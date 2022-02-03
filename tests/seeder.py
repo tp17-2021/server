@@ -33,8 +33,7 @@ async def seed():
     )
     DB = CLIENT[os.environ["SERVER_DB_NAME"]]
 
-    # print(os.popen("ls /code/data/nrsr_2020").readlines())
-    random.seed(2)
+    random.seed(1)
 
     DB.parties.drop()
     DB.candidates.drop()
@@ -76,7 +75,7 @@ async def seed():
         selected_polling_place = random.choice(polling_places)
         vote["polling_place_id"] = selected_polling_place["_id"]
 
-        selected_token = "-".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
+        selected_token = "".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
         vote["token"] = selected_token
 
         selected_party = random.choice(parties)
@@ -106,9 +105,4 @@ async def seed():
     }
     await DB.key_pairs.insert_one(key_pair)
 
-
 asyncio.run(seed())
-
-# async def main():
-#     task = asyncio.create_task(seed())
-#     await task

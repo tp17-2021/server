@@ -1,171 +1,128 @@
-# from motor.motor_asyncio import AsyncIOMotorClient
+# import os
 # import pytest
+# import asyncio
 
-# @pytest.mark.asyncio
-# async def test_using_motor_client(motor_client: AsyncIOMotorClient) -> None:
-#     """This test has access to a Motor client."""
-#     await motor_client.server_info()
+# from unittest import mock
+# from tests import envs
 
-# import pytest
-# from fastapi.testclient import TestClient
-
-# from src.server.app import app
-
-# @pytest.fixture(scope="module")
-# def test_app():
-#     client = TestClient(app)
-#     yield client  # testing happens here
-
-# def test_root(test_app):
-#     response = test_app.get("/")
-#     assert response.status_code == 200
-
-import random
-import json
-import string
-
-
-from tests import test_env
-import os
-from unittest import mock 
-
-with mock.patch.dict(os.environ, test_env.envs):
-    from src.server.app import app
-    from src.server.database import DB
-
-# from src.server.database import DB
-
-# from urllib import response
-from fastapi.testclient import TestClient
-
-import pytest
-# from httpx import AsyncClient
-
-# from src.server.app import app
-
-import asyncio
-
-client = TestClient(app)
-
-
-
-# print(client)
-
-
-# @pytest.mark.asyncio
-# async def test_get():
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         response = await ac.get("/database/schema")
-
-#     print(response)
-#     assert response.status_code == 200
-
+# with mock.patch.dict(os.environ, envs.envs):
+#     from src.server.app import app
+#     from src.server.database import DB
 
 
 # @pytest.fixture
 # def event_loop():
 #     yield asyncio.get_event_loop()
 
-# def pytest_sessionfinish(session, exitstatus):
-#     asyncio.get_event_loop().close()
 
+# @pytest.mark.asyncio
+# async def test_get_party_by_id():
+#     """
+#     Get collection with party id equals 0
+#     """
 
+#     party = [collection async for collection in DB.parties.find()][0]
 
-
-@pytest.mark.asyncio
-async def test_get():
-    # response = client.get("/")
-    # print(response.json())
-    # assert response.status_code == 200
-
-    votes = [vote async for vote in DB.votes.find()]
-    # print(DB)
-
-    # votes = [vote async for vote in DB.votes.find()]
-    print(votes)
-
-    assert True
+#     assert party == {
+#         "_id" : 0,
+#         "party_number" : 1,
+#         "name" : "Slovenská ľudová strana Andreja Hlinku",
+#         "abbreviation" : "Slovenská ľudová strana (SĽS)",
+#         "image" : "slovenska-ludova-strana-andreja-hlinku.png",
+#     }
 
 
 # @pytest.mark.asyncio
-# async def test_get2():
-#     # response = client.get("/")
-#     # print(response.json())
-#     # assert response.status_code == 200
+# async def test_get_candidate_by_id():
+#     """
+#     Get collection with candidate id equals 0
+#     """
 
-#     votes = [vote async for vote in DB.votes.find()]
-#     # print(DB)
+#     candidate = [collection async for collection in DB.candidates.find()][0]
 
-#     # votes = [vote async for vote in DB.votes.find()]
-#     print(votes)
-
-#     assert True
-
-
-# def test_vote_endpoint_invalid_party_id():
-#     DB.votes.drop()
-
-#     data = {
-#         "votes": [
-#             {
-#                 "token": "token1",
-#                 "candidates": [
-#                     {
-#                         "candidate_id": "candidate_id1"
-#                     },
-#                     {
-#                         "candidate_id": "candidate_id2"
-#                     }
-#                 ],
-#                 "party_id": "non_existing_party_id",
-#                 "election_id": "election_id1",
-#                 "office_id": "office_id1"
-#             }
-#         ],
-#         "office_id": "123456"
+#     assert candidate == {
+#         "_id" : 0,
+#         "party_number" : 1,
+#         "order" : 1,
+#         "first_name" : "Jozef",
+#         "last_name" : "Sásik",
+#         "degrees_before" : "Ing.",
+#         "age" : 61,
+#         "occupation" : "predseda SĽS Andreja Hlinku",
+#         "residence" : "Banská Bystrica",
 #     }
 
-#     response = client.post("/elections/vote", json=data)
-#     assert response.status_code == 200
 
-#     # TODO zistit ako spravit databazovy count
-#     votes = list(DB.votes.find({}))
-#     vote_count  = len(votes)
+# @pytest.mark.asyncio
+# async def test_get_polling_place_by_id():
+#     """
+#     Get collection with polling place id equals 0
+#     """
 
-#     assert vote_count == 1
+#     polling_place = [collection async for collection in DB.polling_places.find()][0]
 
-
-# def test_vote_endpoint_vote_is_inserted():
-#     # count votes after 1 insert in DB (successful vote)
-
-#     DB.votes.drop()
-
-#     data = {
-#         "votes": [
-#             {
-#                 "token": "token1",
-#                 "candidates": [
-#                     {
-#                         "candidate_id": "candidate_id1"
-#                     },
-#                     {
-#                         "candidate_id": "candidate_id2"
-#                     }
-#                 ],
-#                 "party_id": "party_id1",
-#                 "election_id": "election_id1",
-#                 "office_id": "office_id1"
-#             }
-#         ],
-#         "office_id": "123456"
+#     assert polling_place == {
+#         "_id" : 0,
+#         "region_code" : 1,
+#         "region_name" : "Bratislavský kraj",
+#         "administrative_area_code" : 101,
+#         "administrative_area_name" : "Bratislava",
+#         "county_code" : 101,
+#         "county_name" : "Bratislava I",
+#         "municipality_code" : 528595,
+#         "municipality_name" : "Bratislava - Staré Mesto",
+#         "polling_place_number" : 1,
+#         "registered_voters_count" : 1234,
 #     }
 
-#     response = client.post("/elections/vote", json=data)
-#     assert response.status_code == 200
 
-#     # TODO
-#     # figure out how to make DB count
-#     votes = list(DB.votes.find({}))
-#     vote_count  = len(votes)
+# @pytest.mark.asyncio
+# async def test_get_vote_by_id():
+#     """
+#     Get collection with votes id equals 0
+#     """
 
-#     assert vote_count == 1
+#     vote = [collection async for collection in DB.votes.find()][0]
+
+#     assert vote == {
+#         "_id" : 0,
+#         "token" : "nr1waa4uhx",
+#         "party_id" : 22,
+#         "election_id" : "election_id",
+#         "candidates_ids" : [
+#             2431
+#         ],
+#         "polling_place_id" : 4640,
+#     }
+
+
+# @pytest.mark.asyncio
+# async def test_insert_vote():
+#     """
+#     Insert one vote and check if number of all votes has increased by one 
+#     """
+
+#     before_insert_ids = [collection["_id"] async for collection in DB.votes.find({}, {"_id":1})]
+#     before_insert_ids.sort()
+#     max_id = before_insert_ids[-1]
+
+#     vote_to_be_inserted = {
+#         "_id" : max_id + 1,
+#         "token" : "abcefghijk",
+#         "party_id" : 0,
+#         "election_id" : "election_id",
+#         "candidates_ids" : [
+#             0,
+#             1,
+#             2,
+#             3,
+#             4
+#         ],
+#         "polling_place_id" : 0,
+#     }
+
+#     await DB.votes.insert_one(vote_to_be_inserted)
+
+#     after_insert_ids = [collection["_id"] async for collection in DB.votes.find({}, {"_id":1})]
+
+#     assert len(before_insert_ids) + 1 == len(after_insert_ids)
