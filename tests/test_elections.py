@@ -1,63 +1,78 @@
-import os
-import pytest
-import asyncio
-
-from unittest import mock 
-from tests import envs
-
-from rsaelectie import rsaelectie
-
-with mock.patch.dict(os.environ, envs.envs):
-    from src.server.app import app
-    from src.server.database import DB
-
-from httpx import AsyncClient
+# import os
+# import pytest
+# import asyncio
 
 
-@pytest.fixture
-def event_loop():
-    yield asyncio.get_event_loop()
+# import os
+# import motor.motor_asyncio
+
+# from unittest import mock 
+# from tests import envs
+
+# from rsaelectie import rsaelectie
+
+# with mock.patch.dict(os.environ, envs.envs):
+#     from src.server.app import app
+#     # from src.server.database import DB
+
+# from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
-async def test_vote_valid_data():
-    """
-    Everything is valid: public_key_pem, polling_place_id, token, party_id, election_id, candidates_ids
-    """
-
-    key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
-    public_key_pem = key_pair["public_key_pem"]
-    polling_place_id = key_pair["polling_place_id"]
+# # @pytest.fixture
+# # def event_loop():
+# #     yield asyncio.get_event_loop()
 
 
-    vote = {
-        "token": "fjosjfidsw",
-        "party_id": 10,
-        "election_id": "election_id",
-        "candidates_ids": [
-            1075,
-            1076,
-            1077
-        ]
-    }
+# def connect_to_db():
+#     CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
+#         f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
+#     )
+#     DB = CLIENT[os.environ["SERVER_DB_NAME"]]
+#     print()
+#     return DB
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
 
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json",
-    }
+# @pytest.mark.asyncio
+# async def test_vote_valid_data():
+#     """
+#     Everything is valid: public_key_pem, polling_place_id, token, party_id, election_id, candidates_ids
+#     """
 
-    payload = {
-        "polling_place_id": polling_place_id,
-        "votes": [
-            encrypted_vote,
-        ]
-    }
+#     DB = connect_to_db()
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.post("/elections/vote", headers=headers, json=payload)
-        assert response.status_code == 200
+#     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
+#     public_key_pem = key_pair["public_key_pem"]
+#     polling_place_id = key_pair["polling_place_id"]
+
+
+#     vote = {
+#         "token": "fjosjfidsw",
+#         "party_id": 10,
+#         "election_id": "election_id",
+#         "candidates_ids": [
+#             1075,
+#             1076,
+#             1077
+#         ]
+#     }
+
+#     encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+
+#     headers = {
+#         "accept": "application/json",
+#         "Content-Type": "application/json",
+#     }
+
+#     payload = {
+#         "polling_place_id": polling_place_id,
+#         "votes": [
+#             encrypted_vote,
+#         ]
+#     }
+
+#     async with AsyncClient(app=app, base_url="http://test") as ac:
+#         response = await ac.post("/elections/vote", headers=headers, json=payload)
+#         assert response.status_code == 200
 
 
 # @pytest.mark.asyncio
@@ -65,6 +80,8 @@ async def test_vote_valid_data():
 #     """
 #     Invalid token: already in database
 #     """
+
+#     DB = connect_to_db()
 
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]
@@ -107,6 +124,8 @@ async def test_vote_valid_data():
 #     Invalid party id: no occurrence in database
 #     """
 
+#     DB = connect_to_db()
+
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]
 #     polling_place_id = key_pair["polling_place_id"]
@@ -141,11 +160,14 @@ async def test_vote_valid_data():
 #         response = await ac.post("/elections/vote", headers=headers, json=payload)
 #         assert response.status_code == 400
 
+
 # @pytest.mark.asyncio
 # async def test_vote_invalid_election_id():
 #     """
 #     Invalid election id: no match
 #     """
+
+#     DB = connect_to_db()
 
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]
@@ -187,6 +209,7 @@ async def test_vote_valid_data():
 #     """
 #     Invalid candidates: more than 5
 #     """
+#     DB = connect_to_db()
 
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]
@@ -231,6 +254,7 @@ async def test_vote_valid_data():
 #     """
 #     Invalid candidates: duplicate ids
 #     """
+#     DB = connect_to_db()
 
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]
@@ -271,6 +295,7 @@ async def test_vote_valid_data():
 #     """
 #     Invalid candidate id: no occurrence in database
 #     """
+#     DB = connect_to_db()
 
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]
@@ -310,6 +335,7 @@ async def test_vote_valid_data():
 #     """
 #     Invalid candidate id: wrong id for entered party id
 #     """
+#     DB = connect_to_db()
 
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]
@@ -349,6 +375,8 @@ async def test_vote_valid_data():
 #     """
 #     Invalid candidate id: wrong id for entered party id
 #     """
+#     DB = connect_to_db()
+
 
 #     key_pair = [key_pair async for key_pair in DB.key_pairs.find()][0]
 #     public_key_pem = key_pair["public_key_pem"]

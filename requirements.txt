@@ -14,3 +14,4 @@ requests
 # dev
 pytest-asyncio
 httpx
+aiomisc

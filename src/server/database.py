@@ -1,11 +1,11 @@
 import os
+from anyio import connect_unix
 import motor.motor_asyncio
 
 CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
     f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
 )
 DB = CLIENT[os.environ["SERVER_DB_NAME"]]
-
 
 async def get_parties_with_candidates():
     pipeline = [{
