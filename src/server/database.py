@@ -20,7 +20,7 @@ async def get_parties_with_candidates():
     return parties_with_candidates
 
 async def get_max_id(collection_name):
-    ids = [item["_id"] async for item in DB[collection_name].find()]
+    ids = [doc["_id"] async for doc in DB[collection_name].find({}, {"_id":1})]
     ids.sort()
     max_id = ids[-1]
     return max_id

@@ -1,14 +1,5 @@
 # General modules
-import json
-from bson import Code
 import traceback
-import base64
-
-
-# # Cryptography libraries
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-
 from rsaelectie import rsaelectie
 
 # FastAPI modules
@@ -27,18 +18,6 @@ router = APIRouter(
 )
 
 
-async def encrypt_message(message, public_key):
-    encryptor = PKCS1_OAEP.new(public_key)
-    encrypted = encryptor.encrypt(bytes(message, encoding="utf-8"))
-    return base64.b64encode(encrypted)
-
-
-async def decrypt_message(base64_encoded_message, private_key):
-    decrypted = base64.b64decode(base64_encoded_message)
-    decryptor = PKCS1_OAEP.new(private_key)
-    return decryptor.decrypt(decrypted)
-
-
 @router.post("/key-pairs", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
 async def create_key_pairs_for_polling_places():
     try:
@@ -48,25 +27,24 @@ async def create_key_pairs_for_polling_places():
         count = 0
         N = 0
         # ---
-        
-        key_pairs_polling_place_ids = [key_pair["polling_place_id"] async for key_pair in DB.key_pairs.find()]
-        polling_places = [polling_place async for polling_place in DB.polling_places.find()]
 
-        for polling_place in polling_places:
-            polling_place_id = polling_place["_id"]
-            if polling_place_id not in key_pairs_polling_place_ids:
+        polling_place_ids = [doc["_id"] async for doc in DB.polling_places.find({}, {"_id": 1})]
+        polling_place_ids_key_pairs = [doc["polling_place_id"] async for doc in DB.key_pairs.find({}, {"polling_place_id": 1, "_id": 0})]
+
+        for polling_place_id in polling_place_ids:
+            if polling_place_id not in polling_place_ids_key_pairs:
                 private_key_pem, public_key_pem = await rsaelectie.get_rsa_key_pair()
 
                 private_key_pem = private_key_pem.decode("utf-8")
                 public_key_pem = public_key_pem.decode("utf-8")
-                
+
                 key_pair = {
                     "polling_place_id": polling_place_id,
                     "private_key_pem": private_key_pem,
                     "public_key_pem": public_key_pem
                 }
                 await DB.key_pairs.insert_one(key_pair)
-            
+
             # --- toto potom odstranit
             count += 1
             if count > N:

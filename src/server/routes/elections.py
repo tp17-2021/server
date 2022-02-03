@@ -14,7 +14,6 @@ from src.server import config
 from src.server import schemas
 from src.server.database import DB
 from src.server.database import get_parties_with_candidates, get_max_id
-from src.server.routes.encryption import encrypt_message
 
 # Create FastAPI router
 router = APIRouter(
@@ -23,94 +22,149 @@ router = APIRouter(
 )
 
 
-async def save_json(data, path):
-    with open(f"{path}.json", "w", encoding="utf8") as file:
-        json.dump(data, file, indent=4, ensure_ascii=False)
-
-
 async def validate_polling_place_id(polling_place_id):
-    if not any([key_pair["polling_place_id"] == polling_place_id async for key_pair in DB.key_pairs.find()]):
-        return False
-    return True
+    polling_place_ids = [doc["polling_place_id"] async for doc in DB.key_pairs.find({}, {"polling_place_id": 1, "_id": 0})]
+    if polling_place_id not in polling_place_ids:
+        content = {
+            "status": "failure",
+            "message": "Invalid polling place id",
+        }
+        return content
 
-
-async def validate_token(token):
-    tokens = [vote["token"] async for vote in DB.votes.find()]
-    if token in tokens:
-        return False
-    return True
+    content = {
+        "status": "success",
+        "message": "Polling place id was successfully validated",
+    }
+    return content
 
 
 async def validate_party_and_candidates(vote):
     candidates_ids = vote["candidates_ids"]
 
     if len(candidates_ids) > 5:
-        return False
+        content = {
+            "status": "failure",
+            "message": "Number of candidates is more than 5",
+        }
+        return content
 
     if len(list(set(candidates_ids))) != len(candidates_ids):
-        return False
+        content = {
+            "status": "failure",
+            "message": "Duplicate candidates ids",
+        }
+        return content
 
     parties = await get_parties_with_candidates()
     for party in parties:
-        if str(party["_id"]) == vote["party_id"]:
+        if party["_id"] == vote["party_id"]:
             candidate_match_count = 0
             for candidate in party["candidates"]:
-                if str(candidate["_id"]) in candidates_ids:
+                if candidate["_id"] in candidates_ids:
                     candidate_match_count += 1
 
             if candidate_match_count == len(candidates_ids):
-                return True
-            return False
-    return False
+                content = {
+                    "status": "success",
+                    "message": "Parties with candidates were successfully validated",
+                }
+                return content
+
+            content = {
+                "status": "failure",
+                "message": "Invalid candidates ids",
+            }
+            return content
+
+    content = {
+        "status": "failure",
+        "message": "Invalid party id",
+    }
+    return content
+
+
+async def validate_token(token):
+    tokens = [doc["token"] async for doc in DB.votes.find({}, {"token":1, "_id":0})]    
+    if token in tokens:
+        content = {
+            "status": "failure",
+            "message": "Invalid token",
+        }
+        return content
+    content = {
+        "status": "success",
+        "message": "Token was successfully validated",
+    }
+    return content
 
 
 async def validate_election_id(election_id):
     if election_id != config.ELECTION_ID:
-        return False
-    return True
+        content = {
+            "status": "failure",
+            "message": "Invalid election id",
+        }
+        return content
+    content = {
+        "status": "success",
+        "message": "Election id was successfully validated",
+    }
+    return content
 
 
 async def validate_votes(request):
-    votes_to_be_inserted = []
-
     polling_place_id = request.polling_place_id
-    if not await validate_polling_place_id(polling_place_id):
-        return False
+    content = await validate_polling_place_id(polling_place_id)
+    if content["status"] == "failure":
+        return content
 
-    key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
-
-    max_id = await get_max_id("votes")
-
+    votes_to_be_inserted = []
     encrypted_votes = request.votes
-    for idx, encrypted_vote in enumerate(encrypted_votes):
+    key_pairs = [key_pair async for key_pair in DB.key_pairs.find({}, {"polling_place_id":1, "private_key_pem":1, "_id":0})]
+    max_id = await get_max_id("votes")
+    
+    for _id, encrypted_vote in enumerate(encrypted_votes):
         match = False
         for key_pair in key_pairs:
             if key_pair["polling_place_id"] == polling_place_id:
                 private_key_pem = key_pair["private_key_pem"]
                 decrypted_vote = await rsaelectie.decrypt_vote(private_key_pem, encrypted_vote)
                 decrypted_vote["polling_place_id"] = polling_place_id
-                decrypted_vote["_id"] = max_id + 1 + idx
+                decrypted_vote["_id"] = max_id + 1 + _id
 
                 match = True
                 break
 
         if not match:
-            return False
+            content = {
+                "status": "failure",
+                "message": "Invalid private key for entered polling place id",
+            }
+            return content
 
-        if not await validate_party_and_candidates(decrypted_vote):
-            return False
+        content = await validate_party_and_candidates(decrypted_vote)
+        if content["status"] == "failure":
+            return content
 
         token = decrypted_vote["token"]
-        if not await validate_token(token):
-            return False
+        content = await validate_token(token)
+        if content["status"] == "failure":
+            return content
 
         election_id = decrypted_vote["election_id"]
-        if not await validate_election_id(election_id):
-            return False
+        content = await validate_election_id(election_id)
+        if content["status"] == "failure":
+            return content
 
         votes_to_be_inserted.append(decrypted_vote)
 
-    return votes_to_be_inserted
+    await DB.votes.insert_many(votes_to_be_inserted)
+
+    content = {
+        "status": "success",
+        "message": "Vote was successfully precessed"
+    }
+    return content
 
 
 @router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
@@ -120,21 +174,9 @@ async def vote(request: schemas.VotesEncrypted):
     """
 
     try:
-        votes_to_be_inserted = await validate_votes(request)
-        if not votes_to_be_inserted:
-            content = {
-                "status": "failure",
-                "message": "Votes were not processed"
-            }
-            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)            
-        
-        for vote_to_be_inserted in votes_to_be_inserted:
-            await DB.votes.insert_one(vote_to_be_inserted)
-
-        content = {
-            "status": "success",
-            "message": "Vote was successfully precessed"
-        }
+        content = await validate_votes(request)
+        if content["status"] == "failure":
+            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)
         return content
 
     except:
