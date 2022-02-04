@@ -76,9 +76,51 @@ async def test_vote_valid_data():
 
 
 @pytest.mark.asyncio
-async def test_vote_invalid_token():
+async def test_vote_duplicate_tokens():
     """
-    Invalid token: already in database
+    Duplicate tokens in the batch
+    """
+    db = connect_to_db()
+    asyncio.get_event_loop().run_until_complete(connect_to_mongo())
+
+    polling_place_id = 0
+    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
+    public_key_pem = public_key_pem["public_key_pem"]
+
+    vote = {
+        "token": "eggc0tddwl",
+        "party_id": 10,
+        "election_id": "election_id",
+        "candidates_ids": [
+            1075,
+            1076,
+            1077
+        ]
+    }
+
+    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "polling_place_id": polling_place_id,
+        "votes": [
+            encrypted_vote,
+            encrypted_vote,
+        ]
+    }
+
+    response = client.post("/elections/vote", headers=headers, json=payload)
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_vote_invalid_combination_of_token_and_polling_place_id():
+    """
+    Invalid token and polling place id: combination already in database
     """
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -112,6 +154,7 @@ async def test_vote_invalid_token():
         ]
     }
 
+    client.post("/elections/vote", headers=headers, json=payload)
     response = client.post("/elections/vote", headers=headers, json=payload)
     assert response.status_code == 400
 

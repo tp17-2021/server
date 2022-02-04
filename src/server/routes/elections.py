@@ -86,13 +86,28 @@ async def validate_party_and_candidates(vote):
     return content
 
 
-async def validate_token(token):
-    DB = await get_database()
-
-    if await DB.votes.count_documents({"token":token}) != 0:
+async def validate_tokens(tokens):
+    if len(set(tokens)) != len(tokens):
         content = {
             "status": "failure",
-            "message": "Invalid token",
+            "message": "Duplicate tokens in the batch",
+        }
+        return content
+
+    content = {
+        "status": "success",
+        "message": "Tokens were successfully validated",
+    }
+    return content
+
+
+async def validate_token_with_polling_place_id(token, polling_place_id):
+    DB = await get_database()
+
+    if await DB.votes.count_documents({"token":token, "polling_place_id": polling_place_id}) != 0:
+        content = {
+            "status": "failure",
+            "message": "Duplicate combination of token and polling place id",
         }
         return content
     content = {
@@ -137,6 +152,8 @@ async def validate_votes(request):
     encrypted_votes = request.votes
     max_id = await get_max_id("votes")
 
+    tokens_to_be_validated = []
+
     for _id, encrypted_vote in enumerate(encrypted_votes):
         private_key_pem = key_pair["private_key_pem"]
         
@@ -149,9 +166,11 @@ async def validate_votes(request):
             return content
 
         token = decrypted_vote["token"]
-        content = await validate_token(token)
+        content = await validate_token_with_polling_place_id(token, polling_place_id)
         if content["status"] == "failure":
             return content
+
+        tokens_to_be_validated.append(token)
 
         election_id = decrypted_vote["election_id"]
         content = await validate_election_id(election_id)
@@ -159,6 +178,10 @@ async def validate_votes(request):
             return content
 
         votes_to_be_inserted.append(decrypted_vote)
+
+    content = await validate_tokens(tokens_to_be_validated)
+    if content["status"] == "failure":
+        return content
 
     await DB.votes.insert_many(votes_to_be_inserted)
 
