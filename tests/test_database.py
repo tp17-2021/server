@@ -13,9 +13,10 @@ def connect_to_db():
     CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
         f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
     )
-    DB = CLIENT[os.environ["SERVER_DB_NAME"]]
-    print()
-    return DB
+    db = CLIENT[os.environ["SERVER_DB_NAME"]]
+    _ = str(db)
+    print(_)
+    return db
 
 
 @pytest.mark.asyncio
@@ -23,9 +24,9 @@ async def test_get_party_by_id():
     """
     Get collection with party id equals 0
     """
-    DB = connect_to_db()
+    db = connect_to_db()
         
-    party = await DB.parties.find_one({"_id":0})
+    party = await db.parties.find_one({"_id":0})
 
     assert party == {
         "_id" : 0,
@@ -41,9 +42,9 @@ async def test_get_candidate_by_id():
     """
     Get collection with candidate id equals 0
     """
-    DB = connect_to_db()
+    db = connect_to_db()
 
-    candidate = await DB.candidates.find_one({"_id":0})
+    candidate = await db.candidates.find_one({"_id":0})
 
     assert candidate == {
         "_id" : 0,
@@ -63,9 +64,9 @@ async def test_get_polling_place_by_id():
     """
     Get collection with polling place id equals 0
     """
-    DB = connect_to_db()
+    db = connect_to_db()
 
-    polling_place = await DB.polling_places.find_one({"_id":0})
+    polling_place = await db.polling_places.find_one({"_id":0})
 
 
     assert polling_place == {
@@ -88,9 +89,9 @@ async def test_get_vote_by_id():
     """
     Get collection with votes id equals 0
     """
-    DB = connect_to_db()
+    db = connect_to_db()
 
-    vote = await DB.votes.find_one({"_id":0})
+    vote = await db.votes.find_one({"_id":0})
 
 
     assert vote == {
@@ -110,9 +111,9 @@ async def test_insert_vote():
     """
     Insert one vote and check if number of all votes has increased by one 
     """
-    DB = connect_to_db()
+    db = connect_to_db()
 
-    before_insert_ids = [collection["_id"] async for collection in DB.votes.find({}, {"_id":1})]
+    before_insert_ids = [collection["_id"] async for collection in db.votes.find({}, {"_id":1})]
     before_insert_ids.sort()
     max_id = before_insert_ids[-1]
 
@@ -131,8 +132,8 @@ async def test_insert_vote():
         "polling_place_id" : 0,
     }
 
-    await DB.votes.insert_one(vote_to_be_inserted)
+    await db.votes.insert_one(vote_to_be_inserted)
 
-    after_insert_ids = [collection["_id"] async for collection in DB.votes.find({}, {"_id":1})]
+    after_insert_ids = [collection["_id"] async for collection in db.votes.find({}, {"_id":1})]
 
     assert len(before_insert_ids) + 1 == len(after_insert_ids)
