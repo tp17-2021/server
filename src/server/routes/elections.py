@@ -27,7 +27,7 @@ router = APIRouter(
 async def validate_polling_place_id(polling_place_id):
     DB  = await get_database()
 
-    if await DB.key_pairs.find_one({"polling_place_id":polling_place_id}) is None:
+    if await DB.key_pairs.count_documents({"polling_place_id":polling_place_id}) == 0:
         content = {
             "status": "failure",
             "message": "Invalid polling place id",
@@ -51,7 +51,7 @@ async def validate_party_and_candidates(vote):
         }
         return content
 
-    if len(list(set(candidates_ids))) != len(candidates_ids):
+    if len(set(candidates_ids)) != len(candidates_ids):
         content = {
             "status": "failure",
             "message": "Duplicate candidates ids",
@@ -89,7 +89,7 @@ async def validate_party_and_candidates(vote):
 async def validate_token(token):
     DB = await get_database()
 
-    if await DB.votes.find_one({"token":token}) is not None:
+    if await DB.votes.count_documents({"token":token}) != 0:
         content = {
             "status": "failure",
             "message": "Invalid token",
@@ -124,29 +124,25 @@ async def validate_votes(request):
     if content["status"] == "failure":
         return content
 
+    key_pair = await DB.key_pairs.find_one({"polling_place_id": polling_place_id})
+
+    if key_pair is None:
+        content = {
+            "status": "failure",
+            "message": "Invalid private key for entered polling place id",
+        }
+        return content
+
     votes_to_be_inserted = []
     encrypted_votes = request.votes
-    key_pairs = [key_pair async for key_pair in DB.key_pairs.find({}, {"polling_place_id":1, "private_key_pem":1, "_id":0})]
     max_id = await get_max_id("votes")
-    
+
     for _id, encrypted_vote in enumerate(encrypted_votes):
-        match = False
-        for key_pair in key_pairs:
-            if key_pair["polling_place_id"] == polling_place_id:
-                private_key_pem = key_pair["private_key_pem"]
-                decrypted_vote = await rsaelectie.decrypt_vote(private_key_pem, encrypted_vote)
-                decrypted_vote["polling_place_id"] = polling_place_id
-                decrypted_vote["_id"] = max_id + 1 + _id
-
-                match = True
-                break
-
-        if not match:
-            content = {
-                "status": "failure",
-                "message": "Invalid private key for entered polling place id",
-            }
-            return content
+        private_key_pem = key_pair["private_key_pem"]
+        
+        decrypted_vote = await rsaelectie.decrypt_vote(private_key_pem, encrypted_vote)
+        decrypted_vote["polling_place_id"] = polling_place_id
+        decrypted_vote["_id"] = max_id + 1 + _id
 
         content = await validate_party_and_candidates(decrypted_vote)
         if content["status"] == "failure":
@@ -173,71 +169,55 @@ async def validate_votes(request):
     return content
 
 
-@router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+@router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}})
 async def vote(request: schemas.VotesEncrypted):
     """
     Process candidate's vote
     """
 
-    try:
-        content = await validate_votes(request)
-        if content["status"] == "failure":
-            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)
-        return content
-
-    except:
-        traceback.print_exc()
-        content = {
-            "status": "failure",
-            "message": "Internal server error"
-        }
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
+    content = await validate_votes(request)
+    if content["status"] == "failure":
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)
+    return content
 
 
-@router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
+
+@router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
 async def get_voting_data():
-    try:
-        parties_with_candidates = await get_parties_with_candidates()
-        
-        # -----
-        # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
-        parties_with_candidates = parties_with_candidates[:2]
-        # -----
-        
-        # multilingual text for VT application
-        texts = {
-            "elections_name_short": {
-                "sk": "Voľby do NRSR",
-                "en": "Parliamentary elections",
-            },
-            "elections_name_long": {
-                "sk": "Voľby do národnej rady Slovenskej republiky",
-                "en": "Parliamentary elections of Slovak Republic",
-            },
-            "election_date": {
-                "sk": "30.11.2021",
-                "en": "30.11.2021",
-            }
+    parties_with_candidates = await get_parties_with_candidates()
+    
+    # -----
+    # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
+    parties_with_candidates = parties_with_candidates[:2]
+    # -----
+    
+    # multilingual text for VT application
+    texts = {
+        "elections_name_short": {
+            "sk": "Voľby do NRSR",
+            "en": "Parliamentary elections",
+        },
+        "elections_name_long": {
+            "sk": "Voľby do národnej rady Slovenskej republiky",
+            "en": "Parliamentary elections of Slovak Republic",
+        },
+        "election_date": {
+            "sk": "30.11.2021",
+            "en": "30.11.2021",
         }
-        
-        image_paths = glob.glob("data/nrsr_2020/logos/*")
-        for image_path in image_paths:
-            for party_with_candidates in parties_with_candidates:
-                image = image_path.split("/")[-1]
-                if image == party_with_candidates["image"]:
-                    with open(image_path, "rb") as file:
-                        image_bytes = base64.b64encode(file.read())
-                        party_with_candidates["image_bytes"] = image_bytes
+    }
+    
+    image_paths = glob.glob("data/nrsr_2020/logos/*")
+    for image_path in image_paths:
+        for party_with_candidates in parties_with_candidates:
+            image = image_path.split("/")[-1]
+            if image == party_with_candidates["image"]:
+                with open(image_path, "rb") as file:
+                    image_bytes = base64.b64encode(file.read())
+                    party_with_candidates["image_bytes"] = image_bytes
 
-        content = {
-            "parties": parties_with_candidates,
-            "texts": texts
-        }
-        return content
-    except:
-        traceback.print_exc()
-        content = {
-            "status": "failure",
-            "message": "Internal server error"
-        }
-        return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
+    content = {
+        "parties": parties_with_candidates,
+        "texts": texts
+    }
+    return content
