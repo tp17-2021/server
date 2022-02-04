@@ -18,7 +18,7 @@ from starlette.responses import JSONResponse
 # Server modules
 from src.server import config
 from src.server import schemas
-from src.server.database import DB, get_parties_with_candidates
+from src.server.database import get_database, get_parties_with_candidates
 
 
 # Create FastAPI router
@@ -32,6 +32,8 @@ async def get_keys(collection_name: str):
     """
     Get all keys from provided collection. Helper function that emits all key inside collection using mapreduce. 
     """
+    DB  = await get_database()
+
     map = Code("function() { for (var key in this) { emit(key, null); } }")
     reduce = Code("function(key, stuff) { return null; }")
     result = await DB[collection_name].map_reduce(map, reduce, "myresults")
@@ -43,6 +45,8 @@ async def schema():
     """
     Get all collections from database
     """
+    DB  = await get_database()
+    
     try:
         collections = []
         collection_names = [collection_name for collection_name in await DB.list_collection_names()]    
@@ -78,6 +82,8 @@ async def load_json(path):
 
 @router.post("/import-data", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
 async def import_data():
+    DB  = await get_database()
+    
     try:
         DB.parties.drop()
         DB.candidates.drop()
@@ -116,6 +122,8 @@ async def import_data():
 
 @router.post("/seed-data", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
 async def seed_data(number_of_votes: int):
+    DB  = await get_database()
+    
     try:
         random.seed(config.SEED)
 

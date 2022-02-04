@@ -1,3 +1,7 @@
+import nest_asyncio
+nest_asyncio.apply()
+__import__('IPython').embed()
+
 import os
 import pytest
 import asyncio
@@ -14,7 +18,11 @@ with mock.patch.dict(os.environ, envs.envs):
     from src.server.app import app
 
 from httpx import AsyncClient
+from fastapi.testclient import TestClient
 
+from src.server.database import connect_to_mongo
+
+client = TestClient(app)
 
 def connect_to_db():
     clinet = motor.motor_asyncio.AsyncIOMotorClient(
@@ -32,6 +40,7 @@ async def test_vote_valid_data():
     Everything is valid: public_key_pem, polling_place_id, token, party_id, election_id, candidates_ids
     """
     db = connect_to_db()
+    asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     key_pair = await db.key_pairs.find_one({"_id":0})
     public_key_pem = key_pair["public_key_pem"]
@@ -63,9 +72,13 @@ async def test_vote_valid_data():
         ]
     }
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.post("/elections/vote", headers=headers, json=payload)
-        assert response.status_code == 200
+    # async with AsyncClient(app=app, base_url="http://test") as ac:
+    #     response = await ac.post("/elections/vote", headers=headers, json=payload)
+    #     assert response.status_code == 200
+
+    response = client.post("/elections/vote", headers=headers, json=payload)
+    print(response.text)
+    assert response.status_code == 200
 
 
 # @pytest.mark.asyncio

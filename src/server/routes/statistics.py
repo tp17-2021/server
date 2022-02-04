@@ -9,7 +9,7 @@ def take(n, iterable):
     "Return first n items of the iterable as a list"
     return list(islice(iterable, n))
 
-from src.server.database import DB, CLIENT
+from src.server.database import get_database
 from src.server import config as c
 
 # Create FastAPI router
@@ -21,6 +21,8 @@ router = APIRouter(
 
 @router.get('/live')
 async def statistics_live():
+    DB  = await get_database()
+
     votes = list(DB.votes.find({}))
     eligible_voters = 2 * (10**3)  # in conf
     vote_participation = round(
@@ -60,6 +62,8 @@ def retype_object_id_to_str(data):
 
 @router.get('/final')
 async def statistics_final():
+    DB  = await get_database()
+    
     votes_n = len(list(DB.votes.find({})))
     vote_participation = round(votes_n / c.ELIGIBLE_VOTERS, 5)
 

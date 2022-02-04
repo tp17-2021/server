@@ -2,10 +2,24 @@ import os
 from anyio import connect_unix
 import motor.motor_asyncio
 
-CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
-    f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
-)
-DB = CLIENT[os.environ["SERVER_DB_NAME"]]
+
+async def connect_to_mongo():
+    global DB
+    
+    CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
+        f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
+    )
+    DB = CLIENT[os.environ["SERVER_DB_NAME"]]    
+
+
+DB: motor.motor_asyncio.AsyncIOMotorClient = None
+
+
+async def get_database() -> motor.motor_asyncio.AsyncIOMotorClient:
+    if DB is None:
+        await connect_to_mongo()
+
+    return DB
 
 async def get_parties_with_candidates():
     pipeline = [{

@@ -10,6 +10,8 @@ from src.server.routes.elections import router as ElectionsRouter
 from src.server.routes.encryption import router as EncryptionRouter
 from src.server.routes.statistics import router as StatisticsRouter
 
+from src.server.database import connect_to_mongo
+
 # Create FastAPI app
 app = FastAPI(root_path=os.environ['ROOT_PATH'])
 
@@ -32,6 +34,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+# import asyncio
+    await connect_to_mongo()
 
 # Include routes
 app.include_router(DatabaseRouter)

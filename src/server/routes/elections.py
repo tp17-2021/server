@@ -13,8 +13,9 @@ from fastapi.responses import JSONResponse
 
 from src.server import config
 from src.server import schemas
-from src.server.database import DB
+from src.server.database import DB, get_database
 from src.server.database import get_parties_with_candidates, get_max_id
+import asyncio
 
 # Create FastAPI router
 router = APIRouter(
@@ -24,6 +25,8 @@ router = APIRouter(
 
 
 async def validate_polling_place_id(polling_place_id):
+    DB  = await get_database()
+
     if await DB.key_pairs.find_one({"polling_place_id":polling_place_id}) is None:
         content = {
             "status": "failure",
@@ -84,6 +87,8 @@ async def validate_party_and_candidates(vote):
 
 
 async def validate_token(token):
+    DB = await get_database()
+
     if await DB.votes.find_one({"token":token}) is not None:
         content = {
             "status": "failure",
@@ -112,6 +117,8 @@ async def validate_election_id(election_id):
 
 
 async def validate_votes(request):
+    DB = await get_database()
+
     polling_place_id = request.polling_place_id
     content = await validate_polling_place_id(polling_place_id)
     if content["status"] == "failure":

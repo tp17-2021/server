@@ -9,7 +9,7 @@ from starlette.responses import JSONResponse
 # Server modules
 from src.server import config
 from src.server import schemas
-from src.server.database import DB
+from src.server.database import get_database
 
 # Create FastAPI router
 router = APIRouter(
@@ -20,6 +20,8 @@ router = APIRouter(
 
 @router.post("/key-pairs", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={500: {"model": schemas.Message}})
 async def create_key_pairs_for_polling_places():
+    DB  = await get_database()
+    
     try:
         # DB.key_pairs.drop()
 
