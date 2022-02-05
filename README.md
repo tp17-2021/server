@@ -15,18 +15,8 @@ After the build, you have two running services (MongoDB database and FastAPI ser
 
 To see all available endpoints of the server navigate to: ```http://localhost:8222/docs```
 
-## Testing
+## Testing inside docker
 Unit test implemented inside repository can be run by building the containers, opening CLI in the server container, and running the following command in the code directory:
-```
- pytest testing.py --verbose -s
-```
-
-Flags description:
---verbose           - print additional information about individual tests and their results
--s                  - include the output of tests in the stdout
-
-
-### Inside Docker
 
 Docker-compose file for testing purpouse is available. Unit/integration tests can be run inside Docker containers. This is the magic:
 ```
