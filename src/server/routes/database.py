@@ -30,7 +30,8 @@ router = APIRouter(
 
 async def get_keys(collection_name: str):
     """
-    Get all keys from provided collection. Helper function that emits all key inside collection using mapreduce. 
+    Get all keys from provided collection. Helper function that emits all key
+    inside collection using mapreduce. 
     """
     DB  = await get_database()
 
@@ -101,6 +102,16 @@ async def import_data():
     return content
 
 
+async def generate_token():
+    random.seed(config.SEED)
+    token = "".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
+    return token
+
+async def choose_candidates(candidates):
+    random.seed(config.SEED)
+    candidates = random.sample(candidates, random.randint(0,5))
+    return candidates
+
 
 @router.post("/seed-data", response_model=schemas.Message, status_code=status.HTTP_200_OK)
 async def seed_data(number_of_votes: int):
@@ -147,7 +158,7 @@ async def seed_data(number_of_votes: int):
         selected_polling_place = random.choice(polling_places)
         vote["polling_place_id"] = selected_polling_place["_id"]
 
-        selected_token = "".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
+        selected_token = await generate_token()
         vote["token"] = selected_token
 
         selected_party = random.choice(parties)
@@ -155,7 +166,7 @@ async def seed_data(number_of_votes: int):
 
         vote["election_id"] = config.ELECTION_ID
 
-        selected_candidates = random.sample(selected_party["candidates"], random.randint(0,5))
+        selected_candidates = await choose_candidates(selected_party["candidates"])
         for selected_candidate in selected_candidates:
             vote["candidates_ids"].append(selected_candidate["_id"])
 

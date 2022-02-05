@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir --upgrade -r ./requirements.txt
 
 COPY ./rsaelectie-install.sh ./rsaelectie-install.sh
 
+RUN chmod a+x rsaelectie-install.sh
+
 RUN ./rsaelectie-install.sh
 
 COPY ./src /code/src
@@ -21,6 +23,8 @@ COPY ./tests /code/tests
 FROM base as test
 
 COPY ./seed_and_test.sh ./seed_and_test.sh
+
+RUN chmod a+x seed_and_test.sh
 
 CMD ["./seed_and_test.sh"]
 # magic command bellow:

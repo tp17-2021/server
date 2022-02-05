@@ -15,16 +15,6 @@ from src.server.database import connect_to_mongo
 # Create FastAPI app
 app = FastAPI(root_path=os.environ['ROOT_PATH'])
 
-# moze sa to hodit do buducna (exporty...)
-# # Create public accesible folder if not exists
-# folder_path = "src/server/public"
-# if not os.path.exists(folder_path):
-#     os.mkdir(folder_path)
-
-# # Mount public accesible folder for assets and downloadable files
-# # /public/{any path} with be with src/server/public/{any path}
-# app.mount("/public", StaticFiles(directory="src/server/public"), name="public")
-
 # Add Middleware
 origins = ["*"]
 app.add_middleware(
