@@ -17,3 +17,4 @@ httpx
 aiomisc
 nest-asyncio
 IPython
+wheel
