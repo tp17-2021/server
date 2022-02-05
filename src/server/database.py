@@ -1,28 +1,40 @@
 import os
-import pymongo
+from anyio import connect_unix
+import motor.motor_asyncio
 
-CLIENT = None
-DB = None
 
-def init():
-    global CLIENT, DB
-        
-    try:
-        timeout = 5
-        MONGO_URI = f'{os.environ["SERVER_DB_HOST"]}:{os.environ["SERVER_DB_PORT"]}'
-        CLIENT = pymongo.MongoClient(MONGO_URI, serverSelectionTimeoutMS=timeout)
-        CLIENT.server_info()
+async def connect_to_mongo():
+    global DB
+    
+    CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
+        f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
+    )
+    DB = CLIENT[os.environ["SERVER_DB_NAME"]]    
 
-        DB = CLIENT[os.environ["SERVER_DB_NAME"]]
 
-        # return DB, CLIENT
+DB: motor.motor_asyncio.AsyncIOMotorClient = None
 
-        # if os.environ["SERVER_DB_NAME"] in CLIENT.list_database_names():
-        #     DB = CLIENT[os.environ["SERVER_DB_NAME"]]
-        # else:
-        #     raise Exception(f'{os.environ["SERVER_DB_NAME"]} does not exist')
 
-    except pymongo.errors.ServerSelectionTimeoutError as err:
-        raise err
+async def get_database() -> motor.motor_asyncio.AsyncIOMotorClient:
+    if DB is None:
+        await connect_to_mongo()
 
-init()
+    return DB
+
+async def get_parties_with_candidates():
+    pipeline = [{
+        "$lookup": {
+            "from": "candidates",
+            "localField": "party_number",
+            "foreignField": "party_number",
+            "as": "candidates"
+        }
+    }]
+    parties_with_candidates = [party_with_candidate async for party_with_candidate in DB.parties.aggregate(pipeline)]
+    return parties_with_candidates
+
+async def get_max_id(collection_name):
+    ids = [doc["_id"] async for doc in DB[collection_name].find({}, {"_id":1})]
+    ids.sort()
+    max_id = ids[-1]
+    return max_id

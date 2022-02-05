@@ -1,67 +1,23 @@
-# General modules
-import json
-from bson import Code
-import traceback
-import base64
 import random
+import json
 import string
-from rsaelectie import rsaelectie
-
-# Cryptography libraries
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-
-# FastAPI modules
-from fastapi import APIRouter, status
-from starlette.responses import JSONResponse
-
-# Server modules
-from src.server import config
-from src.server import schemas
-from src.server.database import get_database, get_parties_with_candidates
+import os
+import motor.motor_asyncio
+import asyncio
 
 
-# Create FastAPI router
-router = APIRouter(
-    prefix = "/database",
-    tags = ["Database"],
-)
+async def get_parties_with_candidates(DB):
+    pipeline = [{
+        "$lookup": {
+            "from": "candidates",
+            "localField": "party_number",
+            "foreignField": "party_number",
+            "as": "candidates"
+        }
+    }]
+    parties_with_candidates = [party_with_candidate async for party_with_candidate in DB.parties.aggregate(pipeline)]
+    return parties_with_candidates
 
-
-async def get_keys(collection_name: str):
-    """
-    Get all keys from provided collection. Helper function that emits all key
-    inside collection using mapreduce. 
-    """
-    DB  = await get_database()
-
-    map = Code("function() { for (var key in this) { emit(key, null); } }")
-    reduce = Code("function(key, stuff) { return null; }")
-    result = await DB[collection_name].map_reduce(map, reduce, "myresults")
-    return [key for key in await result.distinct('_id')]
-
-
-@router.get("/schema", response_model=schemas.Collections, status_code=status.HTTP_200_OK)
-async def schema():
-    """
-    Get all collections from database
-    """
-    DB  = await get_database()
-    
-    collections = []
-    collection_names = [collection_name for collection_name in await DB.list_collection_names()]    
-    for collection_name in collection_names:
-        if collection_name != "myresults":
-            collection_keys = await get_keys(collection_name)
-            collections.append({
-                "name": collection_name,
-                "keys": collection_keys
-            })
-    
-    content = {
-        "collections": collections
-    }
-    return content
 
 async def load_json(path):
     """
@@ -71,53 +27,13 @@ async def load_json(path):
         return json.load(file)
 
 
-@router.post("/import-data", response_model=schemas.Message, status_code=status.HTTP_200_OK)
-async def import_data():
-    DB  = await get_database()
-    
-    DB.parties.drop()
-    DB.candidates.drop()
-    DB.polling_places.drop()
-    DB.votes.drop()
+async def seed():
+    CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
+        f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
+    )
+    DB = CLIENT[os.environ["SERVER_DB_NAME"]]
 
-    parties = await load_json(config.PARTIES_JSON)
-    for _id, party in enumerate(parties):
-        party["_id"] = _id
-        await DB.parties.insert_one(party)
-
-    candidates = await load_json(config.CANDIDATES_JSON)
-    for _id, candidate in enumerate(candidates):
-        candidate["_id"] = _id
-        await DB.candidates.insert_one(candidate)
-
-    polling_places = await load_json(config.POLLING_PLACES_JSON)
-    for _id, polling_place in enumerate(polling_places):
-        polling_place["_id"] = _id
-        await DB.polling_places.insert_one(polling_place)
-
-    content = {
-        "status": "success",
-        "message": "Data was successfully imported"
-    }
-    return content
-
-
-async def generate_token():
-    random.seed(config.SEED)
-    token = "".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
-    return token
-
-async def choose_candidates(candidates):
-    random.seed(config.SEED)
-    candidates = random.sample(candidates, random.randint(0,5))
-    return candidates
-
-
-@router.post("/seed-data", response_model=schemas.Message, status_code=status.HTTP_200_OK)
-async def seed_data(number_of_votes: int):
-    DB  = await get_database()
-
-    random.seed(config.SEED)
+    random.seed(1)
 
     DB.parties.drop()
     DB.candidates.drop()
@@ -125,24 +41,25 @@ async def seed_data(number_of_votes: int):
     DB.votes.drop()
     DB.key_pairs.drop()
 
-    parties = await load_json(config.PARTIES_JSON)
+    parties = await load_json("/code/data/nrsr_2020/parties_transformed.json")
     for _id, party in enumerate(parties):
         party["_id"] = _id
         await DB.parties.insert_one(party)
 
-    candidates = await load_json(config.CANDIDATES_JSON)
+    candidates = await load_json("/code/data/nrsr_2020/candidates_transformed.json")
     for _id, candidate in enumerate(candidates):
         candidate["_id"] = _id
         await DB.candidates.insert_one(candidate)
 
-    polling_places = await load_json(config.POLLING_PLACES_JSON)
+    polling_places = await load_json("/code/data/nrsr_2020/polling_places.json")
     for _id, polling_place in enumerate(polling_places):
         polling_place["_id"] = _id
         await DB.polling_places.insert_one(polling_place)
 
     polling_places = [polling_place async for polling_place in DB.polling_places.find()]
-    parties = await get_parties_with_candidates()
+    parties = await get_parties_with_candidates(DB)
 
+    number_of_votes = 10
     votes_to_be_inserted = []
     for _id in range(number_of_votes):
         vote = {
@@ -158,15 +75,15 @@ async def seed_data(number_of_votes: int):
         selected_polling_place = random.choice(polling_places)
         vote["polling_place_id"] = selected_polling_place["_id"]
 
-        selected_token = await generate_token()
+        selected_token = "".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
         vote["token"] = selected_token
 
         selected_party = random.choice(parties)
         vote["party_id"] = selected_party["_id"]
 
-        vote["election_id"] = config.ELECTION_ID
+        vote["election_id"] = "election_id"
 
-        selected_candidates = await choose_candidates(selected_party["candidates"])
+        selected_candidates = random.sample(selected_party["candidates"], random.randint(0,5))
         for selected_candidate in selected_candidates:
             vote["candidates_ids"].append(selected_candidate["_id"])
 
@@ -188,9 +105,4 @@ async def seed_data(number_of_votes: int):
     }
     await DB.key_pairs.insert_one(key_pair)
 
-    content = {
-        "status": "success",
-        "message": "Test data was successfully seeded"
-    }
-    return content
-    
+asyncio.run(seed())

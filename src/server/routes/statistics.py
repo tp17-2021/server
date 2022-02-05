@@ -9,17 +9,20 @@ def take(n, iterable):
     "Return first n items of the iterable as a list"
     return list(islice(iterable, n))
 
-from src.server.database import DB, CLIENT
+from src.server.database import get_database
+from src.server import config as c
 
 # Create FastAPI router
 router = APIRouter(
-    prefix="/statistics",
-    tags=["Statistics"],
+    prefix = "/statistics",
+    tags = ["Statistics"],
 )
 
 
 @router.get('/live')
 async def statistics_live():
+    DB  = await get_database()
+
     votes = list(DB.votes.find({}))
     eligible_voters = 2 * (10**3)  # in conf
     vote_participation = round(
@@ -59,14 +62,14 @@ def retype_object_id_to_str(data):
 
 @router.get('/final')
 async def statistics_final():
-    votes = list(DB.votes.find({}))
-    eligible_voters = 2 * (10**3)  # in conf
-    vote_participation = round(
-        eligible_voters / len(votes), 5) if len(votes) else 0
+    DB  = await get_database()
+    
+    votes_n = len(list(DB.votes.find({})))
+    vote_participation = round(votes_n / c.ELIGIBLE_VOTERS, 5)
 
-    offices = DB.election_offices.find({}).count()
-    open_offices = 0
-    closed_offices = offices - open_offices
+    offices_open_n = 0 #todo function
+    offices_n = len(list(DB.election_offices.find({})))
+    offices_closed_n = offices_n - offices_open_n
 
     parties_votes_results = list(DB.votes.aggregate([
         {
@@ -157,12 +160,12 @@ async def statistics_final():
         'status': 'success',
         'message': 'Voting final results',
         'statistics': {
-            "votes": len(votes),
-            "eligible_voters": eligible_voters,
+            "votes": votes_n,
+            "eligible_voters": c.ELIGIBLE_VOTERS,
             "vote_participation": vote_participation,
-            "offices": offices,
-            "open_offices": open_offices,
-            "closed_offices": closed_offices,
+            "offices": offices_n,
+            "open_offices": offices_open_n,
+            "closed_offices": offices_closed_n,
             "parties_votes_results": retype_object_id_to_str(parties_votes_results[0]),
             "candidates_votes_results": retype_object_id_to_str(candidates_votes_results[0]),
             "overal_results": temporary_cut_result,

@@ -1,212 +1,246 @@
-from fastapi import APIRouter
-
-import random
-import os
-from pprint import pprint
-from bson.objectid import ObjectId
 import json
-import shutil
+import glob
+import base64
+import string
+import random
+from pytest import yield_fixture
 
+from rsaelectie import rsaelectie
+
+import traceback
+from fastapi import status, APIRouter
+from fastapi.responses import JSONResponse
+
+from src.server import config
 from src.server import schemas
-from src.server.database import DB, CLIENT
+from src.server.database import DB, get_database
+from src.server.database import get_parties_with_candidates, get_max_id
+import asyncio
 
 # Create FastAPI router
 router = APIRouter(
-    prefix="/elections",
-    tags=["Elections"],
+    prefix = "/elections",
+    tags = ["Elections"],
 )
 
-def saveJson(data, filePath):
-	if(".json" not in filePath):
-		filePath += ".json"
-	with open(f"{filePath}", "w", encoding='utf8') as write_file:
-		json.dump(data, write_file, indent=4, ensure_ascii=False)
 
-def validate_token(token):
-    # todo
-    return True
+async def validate_polling_place_id(polling_place_id):
+    DB  = await get_database()
 
-def validate_office(office_id):
-    # todo
-    return True
+    if await DB.key_pairs.count_documents({"polling_place_id":polling_place_id}) == 0:
+        content = {
+            "status": "failure",
+            "message": "Invalid polling place id",
+        }
+        return content
 
-def validate_votes(request):
-    # todo
-    # office_key_pair = "xxxx"
-    # try to decipher data with the private key somehow
-    
-    office_id = request.office_id
-    votes = request.votes
-
-    if not validate_office(office_id):
-        return False
-
-    for vote in votes:
-        token = vote.token
-        if not validate_token(token):
-            return False
-
-    return True
+    content = {
+        "status": "success",
+        "message": "Polling place id was successfully validated",
+    }
+    return content
 
 
-@router.post("/vote", response_model=schemas.ResponseServerVoteSchema)
-async def vote (request: schemas.RequestServerVoteSchema):
+async def validate_party_and_candidates(vote):
+    candidates_ids = vote["candidates_ids"]
+
+    if len(candidates_ids) > 5:
+        content = {
+            "status": "failure",
+            "message": "Number of candidates is more than 5",
+        }
+        return content
+
+    if len(set(candidates_ids)) != len(candidates_ids):
+        content = {
+            "status": "failure",
+            "message": "Duplicate candidates ids",
+        }
+        return content
+
+    parties = await get_parties_with_candidates()
+    for party in parties:
+        if party["_id"] == vote["party_id"]:
+            candidate_match_count = 0
+            for candidate in party["candidates"]:
+                if candidate["_id"] in candidates_ids:
+                    candidate_match_count += 1
+
+            if candidate_match_count == len(candidates_ids):
+                content = {
+                    "status": "success",
+                    "message": "Parties with candidates were successfully validated",
+                }
+                return content
+
+            content = {
+                "status": "failure",
+                "message": "Invalid candidates ids",
+            }
+            return content
+
+    content = {
+        "status": "failure",
+        "message": "Invalid party id",
+    }
+    return content
+
+
+async def validate_tokens(tokens):
+    if len(set(tokens)) != len(tokens):
+        content = {
+            "status": "failure",
+            "message": "Duplicate tokens in the batch",
+        }
+        return content
+
+    content = {
+        "status": "success",
+        "message": "Tokens were successfully validated",
+    }
+    return content
+
+
+async def validate_token_with_polling_place_id(token, polling_place_id):
+    DB = await get_database()
+
+    if await DB.votes.count_documents({"token":token, "polling_place_id": polling_place_id}) != 0:
+        content = {
+            "status": "failure",
+            "message": "Duplicate combination of token and polling place id",
+        }
+        return content
+    content = {
+        "status": "success",
+        "message": "Token was successfully validated",
+    }
+    return content
+
+
+async def validate_election_id(election_id):
+    if election_id != config.ELECTION_ID:
+        content = {
+            "status": "failure",
+            "message": "Invalid election id",
+        }
+        return content
+    content = {
+        "status": "success",
+        "message": "Election id was successfully validated",
+    }
+    return content
+
+
+async def validate_votes(request):
+    DB = await get_database()
+
+    polling_place_id = request.polling_place_id
+    content = await validate_polling_place_id(polling_place_id)
+    if content["status"] == "failure":
+        return content
+
+    key_pair = await DB.key_pairs.find_one({"polling_place_id": polling_place_id})
+
+    if key_pair is None:
+        content = {
+            "status": "failure",
+            "message": "Invalid private key for entered polling place id",
+        }
+        return content
+
+    votes_to_be_inserted = []
+    encrypted_votes = request.votes
+    max_id = await get_max_id("votes")
+
+    tokens_to_be_validated = []
+
+    for _id, encrypted_vote in enumerate(encrypted_votes):
+        private_key_pem = key_pair["private_key_pem"]
+        
+        decrypted_vote = await rsaelectie.decrypt_vote(private_key_pem, encrypted_vote)
+        decrypted_vote["polling_place_id"] = polling_place_id
+        decrypted_vote["_id"] = max_id + 1 + _id
+
+        content = await validate_party_and_candidates(decrypted_vote)
+        if content["status"] == "failure":
+            return content
+
+        token = decrypted_vote["token"]
+        content = await validate_token_with_polling_place_id(token, polling_place_id)
+        if content["status"] == "failure":
+            return content
+
+        tokens_to_be_validated.append(token)
+
+        election_id = decrypted_vote["election_id"]
+        content = await validate_election_id(election_id)
+        if content["status"] == "failure":
+            return content
+
+        votes_to_be_inserted.append(decrypted_vote)
+
+    content = await validate_tokens(tokens_to_be_validated)
+    if content["status"] == "failure":
+        return content
+
+    await DB.votes.insert_many(votes_to_be_inserted)
+
+    content = {
+        "status": "success",
+        "message": "Vote was successfully precessed"
+    }
+    return content
+
+
+@router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}})
+async def vote(request: schemas.VotesEncrypted):
     """
     Process candidate's vote
     """
+
+    content = await validate_votes(request)
+    if content["status"] == "failure":
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)
+    return content
+
+
+
+@router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
+async def get_voting_data():
+    parties_with_candidates = await get_parties_with_candidates()
     
-    if not validate_votes(request):
-        return {
-            "status": "fail",
-            "message": "Vote was not processed",
-        }
-
-    votes = request.votes
-    for vote in votes:
-        vote = dict(vote)
-
-        candidates = []
-        for candidate in vote["candidates"]:
-            candidate = dict(candidate)
-            candidates.append(candidate)
-
-        vote["candidates"] = candidates
-        DB.votes.insert(vote)
-
-    office_id = request.office_id
-    return {
-        "status": "success",
-        "message": "Vote was processed",
-        "votes": votes,
-        "office_id": office_id
-    }
-
-@router.get("/seed/votes/{number}")
-async def vote_seeder(number: int):
-    """
-    Immitate voting process
-    """
-    print(number)
-
-    parties = get_parties_with_candidates()
-
-    data_to_insert = []
-    for _ in range(number):
-        selected_party = random.choice(parties)
-        vote = {
-            "token": "token",
-            "party_id" : selected_party["_id"],
-            "election_id" : "hqgwdhjgjasd",
-            "office_id" : "khkjehwdkjhaskd",
-            "candidates" : []
-        }
-
-        selected_candidates = random.sample(selected_party["candidates"], 5)
-
-        for candidate in selected_candidates:
-            vote["candidates"].append({
-                "candidate_id" : candidate["_id"]
-            })
-       
-        data_to_insert.append(vote)
-
-    DB.votes.insert_many(data_to_insert)
-
-    return {
-        "status": "success",
-        "message": "Vote processed",
-        "votes": []
-    }
-
-# https://stackoverflow.com/questions/49616659/python-convert-recursively-to-string-in-list-of-dictionaries
-def retype_object_id_to_str(data):
-    to_map = retype_object_id_to_str
-    if isinstance(data, list):
-        return [to_map(x) for x in data]
-    elif isinstance(data, dict):
-        return {to_map(key): to_map(val) for key, val in data.items()}
-    elif isinstance(data, ObjectId):
-        return str(data)
-    else:
-        return data
-
-# Get list of parties with nested objects of candidates
-def get_parties_with_candidates():
-    return list(DB.parties.aggregate([
-        {
-            '$lookup': {
-                'from': 'candidates', 
-                'localField': '_id', 
-                'foreignField': 'party_id', 
-                'as': 'candidates'
-            }
-        }, {
-            '$sort': {
-                '_id': 1
-            }
-        }
-    ]))
-
-# Configuration file for VT, development version
-# curl -X "GET" "http://localhost:8222/elections/voting-data" -H "accept: application/json" > voting-data.json
-@router.get('/voting-data')
-async def elections_voting_data():
+    # -----
+    # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
+    parties_with_candidates = parties_with_candidates[:2]
+    # -----
     
-    # Parties and candidates data from DB
-    parties = get_parties_with_candidates()
-    parties = retype_object_id_to_str(parties)
-
-    # Multilingual text for VT application
+    # multilingual text for VT application
     texts = {
-        "elections_name_short" : {
-            "sk" : "Voľby do NRSR",
-            "en" : "Parliamentary elections",
+        "elections_name_short": {
+            "sk": "Voľby do NRSR",
+            "en": "Parliamentary elections",
         },
-        "elections_name_long" : {
-            "sk" : "Voľby do národnej rady Slovenskej republiky",
-            "en" : "Parliamentary elections of Slovak Republic",
+        "elections_name_long": {
+            "sk": "Voľby do národnej rady Slovenskej republiky",
+            "en": "Parliamentary elections of Slovak Republic",
         },
-        "election_date" : {
-            "sk" : "30.11.2021",
-            "en" : "30.11.2021",
+        "election_date": {
+            "sk": "30.11.2021",
+            "en": "30.11.2021",
         }
     }
+    
+    image_paths = glob.glob("data/nrsr_2020/logos/*")
+    for image_path in image_paths:
+        for party_with_candidates in parties_with_candidates:
+            image = image_path.split("/")[-1]
+            if image == party_with_candidates["image"]:
+                with open(image_path, "rb") as file:
+                    image_bytes = base64.b64encode(file.read())
+                    party_with_candidates["image_bytes"] = image_bytes
 
-    # Combine all the data together
-    data = {
-        "parties" : parties,
-        "texts" : texts
+    content = {
+        "parties": parties_with_candidates,
+        "texts": texts
     }
-
-    # Cntainer folder structure
-    # data
-    # src
-    # ---- server
-    # ---------- public
-    # ---------------- config.zip
-    # ---------------- nrsr_2020
-    # -------------------------- logos
-    # -------------------------- data.json
-
-
-    public_dir_path = "src/server/public"
-    data_path = os.path.join(public_dir_path, "nrsr_2020")
-    if not os.path.exists(data_path):
-        os.mkdir(data_path)
-
-    logos_path = os.path.join(data_path, "logos")
-    if not os.path.exists(logos_path):
-        os.mkdir(logos_path)
-        dest = shutil.copytree("data/nrsr_2020/logos/", "src/server/public/nrsr_2020/logos/", dirs_exist_ok=True)
-
-    # file is accesible on /public/nrsr_2020/data.json
-    saveJson(data, "src/server/public/nrsr_2020/data.json")    
-
-    # make config file zip, downloadable at /public/config.zip
-    shutil.make_archive("src/server/public/config", 'zip', "src/server/public/nrsr_2020/")
-
-    return {
-        'status' : 'success',
-        'message': 'Elections data created',
-        # 'data' : data
-    }
+    return content

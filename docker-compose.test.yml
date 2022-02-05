@@ -7,11 +7,9 @@ services:
       # The path to the service's repository
       context: .
       dockerfile: ./Dockerfile
-      target: build
+      target: test
     # bind the service's exposed port 80 to the host's 8222
-    ports:
-      - 8222:80
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       - server-db
     # export useful environment variables to the service
@@ -25,12 +23,7 @@ services:
     # use existing mongo image from dockerhub
     image: mongo
     # container_name: server-db
-    ports:
-      - 8223:27017
     restart: unless-stopped
-    # use server-db-data directory as volume to store data
-    volumes:
-      - ./server-db-data:/data/db
     # export useful environment variables to the service's container
     environment:
       - PUID=1000
