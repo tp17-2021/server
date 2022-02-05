@@ -30,16 +30,14 @@ Flags description:
 
 Docker-compose file for testing purpouse is available. Unit/integration tests can be run inside Docker containers. This is the magic:
 ```
-docker-compose -f docker-compose.test.yml -p server-tests up --build --exit-code-from server --force-recreate --remove-orphans
+docker-compose -f docker-compose.test.yml up --build --exit-code-from server --force-recreate
 ```
 
 Flags description:
 -f                  - docker-compose yml file
--p                  - proejct name (used as prefix when naming containers)
 --build             - build images if changed sources
 --exit-code-from    - get overall exit code from specified container
 --force-recreate    - recreate all containers
---remove-orphans    - remove containers not present in compose file
 
 _The output of this command is quite... confusing. Output of every container is combined, so not only test results are visible, but also log junk from database. At least, every line prefixes with container name, so grep on Linux can filter it. Although, ignoring otuput from unrelevant containers still remains to be solved smartly._
 
