@@ -156,10 +156,6 @@ async def validate_votes(request):
 
     for _id, encrypted_vote in enumerate(encrypted_votes):
         private_key_pem = key_pair["private_key_pem"]
-
-        # private_key_pem = "-----BEGIN RSA PRIVATE KEY-----\nMIIEogIBAAKCAQEAt9qwGYKhIjkGqQlUCbCbzbVf7H/pOsXyw49AYyy0fuvc04QP\nGZNZgB03cpmdPzylWsWskO9p1GPO8jQ8gf9FfVCFuqF+QRVwi8XRSrwyBsOo2GMp\nYwJaipVfr4bCbUMWs87kXGJmgu4o/+iXOD4kkupenVQF6H9T02kuPAhfotFIUZmL\nT68zee0TZ2JXk7WL9rn17ir9QL+S0NJz8C84Di8QfRVnT888Fv+2aCih2qmvdRHN\nedEXnHw0N5hVBWeoihFeV1LubKz+NM/2JhI4FDQ/skugwNK21iGPykFC+UvOhxW0\nEQ9GFbggEcGnYxKry4hV9g/4Z8aqktkngAnDNwIDAQABAoIBAEIfnndGUpKe5OTV\nrIphoN+OrIXACU9wkxu/gT5J/U6qoLzYAaBGrQlVOLR4SCROuP/ZGXP1D2BqVyso\nG1z7xO/Jjpctbt2UiupSRrA02F8zbp4IqAFqfsrZ51SXSIUIfHlF3z7Uyx6q7kb/\nzadWPkwyi73U0t0oMitWaGEB9/dz5luCr6Si13fnpxJP+ZhuuUjPJQAL2+iuUJcL\n/0GiN9mxISNXz6/a/umrUrpOZqsor13KjRBAAMyrOWNgsOmEhHXD+QIn24pxojuS\natIJOAW6lQDtn57LbV/Jg7ApxVsE2ICO+x5Bg9/RSxr4JOzzQ61zNq7JKMgcSdVx\nFcxSOGUCgYEAzQi9u9l5yv1j3drfJFTCwkmU6Snho56TPMAyzUu0tpn5/Ov9lpps\nnD95yltM83LpGbqIeSX9Qk1ZSE5wtLfvyAdh8JNYsHgFrJxAAy1zSyZUxHLE+nau\nUJJ+fnSq5Lwgq/DkQTj4den1tMOryADWHbUbhrFeYimSLZaM+S4aKoUCgYEA5Y4s\nXA3pCD/lwwDcXsntms+FSqPV1Sk456c1/zfeVGGx5hH4ebW4T0G0FoghJK5pC290\ne7TPc0UnpTyl66pBPaVuMcXx3xeWEcpiuvjhi+RQatkOYR88Mxh1zJfJK5+VZNAZ\nVGt2Bmbilb9BNC4juEqPJpoXHXch46nK6QneCYsCgYBj5zdz2ZKzquXHSwdhT3+a\nZXoOZl7Qd8rsVgYq7BGAy+P4LhDhGhuDwpYYWIZVNQ+Jfs9SoIUXklLHnZjjJaDL\nSXWaYGFdkw3IvlWedr3vxxyUoAuEsuFa1xaVjUlbrKMKxJSjhxvhcH9Nde40xNuP\nnBhud+wyTmkwl2PXYnRTdQKBgHIe9TSqgbBlO89vLR8+mg49ntFVk+fN/4lC2phP\n6QrgKrXrNzEiw0c7rdEJyhhXUMermCgr4no25hfCh+YaFScViCvccXtsWWHs0JqN\nQmvujIAh+oEUKzRns6CL0SoLwxSEVCNg7SMPoRO7KipLydxDzNjvABDY+hMZhVPH\nYQgzAoGABBg3hNE8chJWdpwvtm6MFqCrdaMVObUXM8N75yDGVq1IlJKqUkMG0nUb\n1+tDenWricdar7neK8AwQYHydWx7MTrBhl8JKCPHiXn5qYNAAIZmDcjLbtzpABAZ\n7MChVRyHUSVky0Cvb8Q7msrY0qjrddXoUy/NIjUymRqEHXNsF40=\n-----END RSA PRIVATE KEY-----"
-        print(len(encrypted_vote))
-        print(encrypted_vote)
         
         decrypted_vote = await electiersa.decrypt_vote(private_key_pem, encrypted_vote)
         decrypted_vote["polling_place_id"] = polling_place_id
