@@ -12,7 +12,7 @@ import motor.motor_asyncio
 from unittest import mock 
 from tests import envs
 
-from rsaelectie import rsaelectie
+from electiersa import electiersa
 
 with mock.patch.dict(os.environ, envs.envs):
     from src.server.app import app
@@ -57,7 +57,7 @@ async def test_vote_valid_data():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -98,7 +98,7 @@ async def test_vote_duplicate_tokens():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -140,7 +140,7 @@ async def test_vote_invalid_combination_of_token_and_polling_place_id():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -182,7 +182,7 @@ async def test_vote_invalid_party_id():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -223,7 +223,7 @@ async def test_vote_invalid_election_id():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -267,7 +267,7 @@ async def test_vote_more_than_5_candidates():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -307,7 +307,7 @@ async def test_vote_duplicate_candidates():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -346,7 +346,7 @@ async def test_vote_invalid_candidate_id():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -385,7 +385,7 @@ async def test_vote_invalid_candidate_id2():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",
@@ -424,7 +424,7 @@ async def test_vote_invalid_candidate_id2():
         ]
     }
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, vote)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
 
     headers = {
         "accept": "application/json",

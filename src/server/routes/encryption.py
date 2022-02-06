@@ -1,6 +1,6 @@
 # General modules
 import traceback
-from rsaelectie import rsaelectie
+from electiersa import electiersa
 
 # FastAPI modules
 from fastapi import APIRouter, status
@@ -34,7 +34,7 @@ async def create_key_pairs_for_polling_places():
 
     for polling_place_id in polling_place_ids:
         if polling_place_id not in polling_place_ids_key_pairs:
-            private_key_pem, public_key_pem = await rsaelectie.get_rsa_key_pair()
+            private_key_pem, public_key_pem = await electiersa.get_rsa_key_pair()
 
             private_key_pem = private_key_pem.decode("utf-8")
             public_key_pem = public_key_pem.decode("utf-8")
@@ -66,7 +66,7 @@ async def test_encrypt_vote(request: schemas.VoteToBeEncrypted):
     data_to_be_encrypted = request.vote
     data_to_be_encrypted = dict(data_to_be_encrypted)
 
-    encrypted_vote = await rsaelectie.encrypt_vote(public_key_pem, data_to_be_encrypted)
+    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, data_to_be_encrypted)
 
     content = {
         "encrypted_vote": encrypted_vote
@@ -79,5 +79,5 @@ async def test_decrypt_vote(request: schemas.VoteToBeDecrypted):
     private_key_pem = request.private_key_pem
     vote_to_be_decrypted = request.encrypted_vote
 
-    vote = await rsaelectie.decrypt_vote(private_key_pem, vote_to_be_decrypted)
+    vote = await electiersa.decrypt_vote(private_key_pem, vote_to_be_decrypted)
     return vote

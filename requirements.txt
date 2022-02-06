@@ -7,11 +7,6 @@ aiofiles
 pycryptodome==3.11.0
 motor
 requests
-# httpx
-# pytest-asyncio==0.17.2
-# asyncpg==0.22.0
-
-# dev
 pytest-asyncio
 httpx
 aiomisc
@@ -20,4 +15,4 @@ IPython
 wheel
 
 # our custom library
-rsaelectie
+electiersa
