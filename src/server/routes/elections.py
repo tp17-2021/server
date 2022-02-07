@@ -149,15 +149,21 @@ async def validate_votes(request):
         return content
 
     votes_to_be_inserted = []
-    encrypted_votes = request.votes
+    votes = request.votes
     max_id = await get_max_id("votes")
 
     tokens_to_be_validated = []
 
-    for _id, encrypted_vote in enumerate(encrypted_votes):
+    for _id, vote in enumerate(votes):
+        vote = dict(vote)
+
+        encrypted_vote = vote["encrypted_vote"]
+        tag = vote["tag"]
+        nonce = vote["nonce"]
+        encrypted_aes_key = vote["encrypted_aes_key"]
         private_key_pem = key_pair["private_key_pem"]
-        
-        decrypted_vote = await electiersa.decrypt_vote(private_key_pem, encrypted_vote)
+
+        decrypted_vote = await electiersa.decrypt_vote(encrypted_vote, tag, nonce, encrypted_aes_key, private_key_pem)     
         decrypted_vote["polling_place_id"] = polling_place_id
         decrypted_vote["_id"] = max_id + 1 + _id
 

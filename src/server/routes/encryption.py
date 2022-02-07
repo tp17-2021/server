@@ -22,7 +22,7 @@ router = APIRouter(
 async def create_key_pairs_for_polling_places():
     DB  = await get_database()
     
-    # DB.key_pairs.drop()
+    DB.key_pairs.drop()
 
     # --- toto potom odstranit
     count = 0
@@ -35,9 +35,6 @@ async def create_key_pairs_for_polling_places():
     for polling_place_id in polling_place_ids:
         if polling_place_id not in polling_place_ids_key_pairs:
             private_key_pem, public_key_pem = await electiersa.get_rsa_key_pair()
-
-            private_key_pem = private_key_pem.decode("utf-8")
-            public_key_pem = public_key_pem.decode("utf-8")
 
             key_pair = {
                 "polling_place_id": polling_place_id,
@@ -59,25 +56,42 @@ async def create_key_pairs_for_polling_places():
     return content
 
 
+@router.get("/test-create-aes-key", status_code=status.HTTP_200_OK)
+async def create_aes_key():
+    return await electiersa.get_aes_key()
+
+
 @router.post("/test-encrypt-vote", response_model=schemas.VoteEncrypted, status_code=status.HTTP_200_OK)
 async def test_encrypt_vote(request: schemas.VoteToBeEncrypted):
     public_key_pem = request.public_key_pem
+    
+    aes_key = request.aes_key
+    
+    vote = request.vote
+    vote = dict(vote)
 
-    data_to_be_encrypted = request.vote
-    data_to_be_encrypted = dict(data_to_be_encrypted)
-
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, data_to_be_encrypted)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     content = {
-        "encrypted_vote": encrypted_vote
+        "encrypted_vote": encrypted_vote,
+        "tag": tag,
+        "nonce": nonce,
+        "encrypted_aes_key": encrypted_aes_key
     }
     return content
 
 
 @router.post("/test-decrypt-vote", response_model=schemas.Vote, status_code=status.HTTP_200_OK)
 async def test_decrypt_vote(request: schemas.VoteToBeDecrypted):
-    private_key_pem = request.private_key_pem
-    vote_to_be_decrypted = request.encrypted_vote
+    encrypted_vote = request.encrypted_vote
+    
+    tag = request.tag
+    
+    nonce = request.nonce
+    
+    encrypted_aes_key = request.encrypted_aes_key
 
-    vote = await electiersa.decrypt_vote(private_key_pem, vote_to_be_decrypted)
+    private_key_pem = request.private_key_pem
+
+    vote = await electiersa.decrypt_vote(encrypted_vote, tag, nonce, encrypted_aes_key, private_key_pem)
     return vote

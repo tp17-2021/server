@@ -36,5 +36,8 @@ async def get_parties_with_candidates():
 async def get_max_id(collection_name):
     ids = [doc["_id"] async for doc in DB[collection_name].find({}, {"_id":1})]
     ids.sort()
-    max_id = ids[-1]
+    if len(ids) == 0:
+        max_id = -1
+    else:
+        max_id = ids[-1]
     return max_id
