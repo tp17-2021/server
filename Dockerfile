@@ -14,7 +14,7 @@ COPY ./src /code/src
 
 COPY ./tests /code/tests
 
-RUN pip install electiersa
+# RUN pip install electiersa
 
 FROM base as test
 

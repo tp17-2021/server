@@ -44,6 +44,7 @@ class Party(BaseModel):
     candidates: List[Candidate] = []
 
 class PollingPlace(BaseModel):
+    _id: int
     region_code: int
     region_name: str
     administrative_area_code: int
@@ -71,17 +72,18 @@ class PollingPlace(BaseModel):
             }
         }
 
-class VotingData(BaseModel):
-    parties: List[Party] = []
-    texts: Texts
-
 class KeyPair(BaseModel):
-    polling_place_id: str
+    _id: int
+    polling_place_id: int
+    aes_key: str
     private_key_pem: str
     public_key_pem: str
 
-class KeyPairs(BaseModel):
+class VotingData(BaseModel):
+    polling_places: List[PollingPlace] = []
+    parties: List[Party] = []
     key_pairs: List[KeyPair] = []
+    texts: Texts
 
 class Vote(BaseModel):
     token: str
@@ -105,14 +107,15 @@ class VotesEncrypted(BaseModel):
                 "polling_place_id": 0,
                 "votes": [
                     {
-                        "encrypted_vote": "cZSkFnlwH/VZ30WmvmbrF7GjMqWKp8zxDYNHMwR97cVqLM6FXOx6uz21/CuDvvNvSE+IULmQxp8fNNpu/zaewzMLCvXP/Vam9rVCU4FCjiiYVZZrMiyLVa5+/zPqBCaIwMqBks3O2S0OSrk=",
-                        "tag": "CZAvk1wCIbWZhcD7ZdSFOw==",
-                        "nonce": "g7zmCLbn8bluYUq1nrW10g==",
-                        "encrypted_aes_key": "Q0LlxTxdbRMzllV03TX0GW1gSxs6WsDzoNx/DufPFWyyyVVnNj/A9Gp0Ujo9aKX5ywvZTXomP4zEgL1l7QfYEk0pHrjWj8L4HxTWNcfS6jRxFuRkAzhCVo0Dpr8cntDZlUjL7vOIvdIbA+3xGh4NeLcwmbFs3RoIDCh4wppklkgpPxs7cubYzoOUd9pcfiwHD+t3bjgVDnWVweTORZHB/wnS/TTPsH+ZpPsAGKBEjL3Mae/ITEOfCN0auxvNw01pbYVohMAB/Wb4JeN8Utd6O6DUPUBpcPPRS1Hk5gtYTy3su4uSYOqpcDdw+sTYfTPB259D0eAVoJ25zBhlpfzP5Q=="
+                        "encrypted_vote": "TLrV9+z9R/0fviMkhOjRrtW3ks6pnRY8/quf23hG3AAth+2EnWyX1ED/kIW+UlXbj94aTj6zvjCtuegFANaUxOyuvwQMVdZ8M8czMKU74Wsc9cVfw9xIBYwJZi2Ypg2gnEIWl1L/+iil9jA=",
+                        "tag": "exSFa3vi15tCqpmq9V/9Gg==",
+                        "nonce": "mVjjrf5NmH4Bs0VlH20ltA==",
+                        "encrypted_aes_key": "ZLkQJmDyZRNxsqAnqIOyVaBaA1Tu0NFw2PaKAy4c/eigkA8LBLVQqem69jkTjM9KZIsAzbDyh41KNwYaawXxRrAebm+v2iQg1aZUdsAxfzEWVp5k3+b1MuRcD393o5FkmML+7zxe0lt/fCmjr2Q6OYeilJI+IbVqii8SxABW6fH2uafPTRGJGSS//ne70oiIBDXM1m6ytEThKPW2rgb7ZqGxKBJyiev+fyCyNqrip4fZTnpHEwqkVBWTeRbzBtAMjFWOv234wSBvbM9dLk6D9P9nZCVD6hE3JQk842bUPI7OkyR5Y2DO7qVo42i1ijdK/HCNigoh76Y20SETS84E3g=="
                     }
                 ]
             }
         }
+
 
 class VoteToBeEncrypted(BaseModel):
     public_key_pem: str
@@ -123,7 +126,7 @@ class VoteToBeEncrypted(BaseModel):
         schema_extra = {
             "example": {
                 "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs6lvNfr+Eo6Mt+mW95fh\njUbCRygCNok8Y8yIu502lpDiz3bNdR5qRZndlq7k+8XmIv2Qm8yD9BeBJbSyvc7I\nEpRSmY1nElabMoBbU2vsPWBsu7WR31pGDtAnQYCOvofScT98lar5WY5EOIV7ZzPu\nRVtuHy/q2tD5sY2ekWJc1YsoeQ5JDK64qXHZsGaIjblm+gQemucv5TG80+sgzf7c\n2P4NpNgSJ2NT8aF/bDbu3sQk9QuQXTEnkgFxTPWCwhYzRvsyq6dSTnlbyk8xfchq\nrYj5Xnql/wcrnyOhcgeKsOBieH/fETheNm6xC6Ol9Zo0rFdtqgBDsIN6H5aPCfG4\n7QIDAQAB\n-----END PUBLIC KEY-----",
-                "aes_key": "K6COJ/CWsJxA2RqvHoaF1RDxbfnZGa9+1PY8ppVD6EA=",
+                "aes_key": "LSH63IWHrJmm7VkLt+eTX35ON5jYqtYBf3hDeC4ZYkU=",
                 "vote": {
                     "token": "fjosjfidsw",
                     "party_id": 10,
@@ -148,13 +151,14 @@ class VoteToBeDecrypted(BaseModel):
     class Config:
         schema_extra = {
             "example": {
-                "encrypted_vote": "cZSkFnlwH/VZ30WmvmbrF7GjMqWKp8zxDYNHMwR97cVqLM6FXOx6uz21/CuDvvNvSE+IULmQxp8fNNpu/zaewzMLCvXP/Vam9rVCU4FCjiiYVZZrMiyLVa5+/zPqBCaIwMqBks3O2S0OSrk=",
-                "tag": "CZAvk1wCIbWZhcD7ZdSFOw==",
-                "nonce": "g7zmCLbn8bluYUq1nrW10g==",
-                "encrypted_aes_key": "Q0LlxTxdbRMzllV03TX0GW1gSxs6WsDzoNx/DufPFWyyyVVnNj/A9Gp0Ujo9aKX5ywvZTXomP4zEgL1l7QfYEk0pHrjWj8L4HxTWNcfS6jRxFuRkAzhCVo0Dpr8cntDZlUjL7vOIvdIbA+3xGh4NeLcwmbFs3RoIDCh4wppklkgpPxs7cubYzoOUd9pcfiwHD+t3bjgVDnWVweTORZHB/wnS/TTPsH+ZpPsAGKBEjL3Mae/ITEOfCN0auxvNw01pbYVohMAB/Wb4JeN8Utd6O6DUPUBpcPPRS1Hk5gtYTy3su4uSYOqpcDdw+sTYfTPB259D0eAVoJ25zBhlpfzP5Q==",
+                "encrypted_vote": "jbKrPSBcBVi84BL5pqROwyqFi/9dotIJ7x/13WevatP6Ydwd6nKWdCYy9M+zv/BJG6yQu2MVn4q56je/rRiVZqoA7pD5E98pJ3UeazelmaIzsuTqR4ffhvLBHvRhdhOEygjmNO8Vgezgx5Y=",
+                "tag": "VzRG72yFU96eZoUTOy0Nsw==",
+                "nonce": "R3b4b8vfjA1hv/bhvhBWLw==",
+                "encrypted_aes_key": "p/C8qtxDztAmYP/h7nAAGap2ODijGOkGXG3m9kboc5tUXGusyzlRJJmNLS70NosX7xx9dhY1ftOKQ9NTj+NYikNYBYzeC/F9HSqo21/qWmIYjfrx13pnVaoLa7ezjre96MwbcqdKnmrxCb0rsH5TgEDq2vwpDif0tP+7Iec8A3dikC5x54fehbqaK1nnQDTbvsHBJQjpVfKhI5Oy0zq0IwV0XR080cWeGF17qevBdz8K4ybFie5qa5iy6IXTZ1E1Vy6ibpmXG+032vuyAPUyY5zQCRkqNc523ayQo0MG2PHDmKHmhFLqpgyBVl0CS3j8cwjKCIGhFNBCV2WMyrPzRg==",
                 "private_key_pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAs6lvNfr+Eo6Mt+mW95fhjUbCRygCNok8Y8yIu502lpDiz3bN\ndR5qRZndlq7k+8XmIv2Qm8yD9BeBJbSyvc7IEpRSmY1nElabMoBbU2vsPWBsu7WR\n31pGDtAnQYCOvofScT98lar5WY5EOIV7ZzPuRVtuHy/q2tD5sY2ekWJc1YsoeQ5J\nDK64qXHZsGaIjblm+gQemucv5TG80+sgzf7c2P4NpNgSJ2NT8aF/bDbu3sQk9QuQ\nXTEnkgFxTPWCwhYzRvsyq6dSTnlbyk8xfchqrYj5Xnql/wcrnyOhcgeKsOBieH/f\nETheNm6xC6Ol9Zo0rFdtqgBDsIN6H5aPCfG47QIDAQABAoIBAAEotU5QfGpm8gUF\n/64cOMs1Bm/4E+QmCFrF5IQ1VFvlBBmQGZGko6i6AHR0CtCN2OuVAne9sTtfYyjU\nLvPdzUcMQ3q40+B3n5BB6UvFZ2SIiu1RE3nDCRyFx/VWATEqwZKTmaEUsO1BMHwx\nJWW5+K4tb1HunUZ20M2OEfkps39438Vk1R4I/kJqhp8E7mLYshBHyK1OwOgiInE4\n1Z2SwAhvGKnNE3TnBlV7/K5XFQg3b7QWORHvlvnNHU7ed8TXmizp7No6Qxl1ZJ2z\nier3f+XiMAryIb7AyBJyIWGnQllrDhff5hhNObltLmmaAkQm3LSsJ52GU9e4i/6c\nF/sshLECgYEAu78IM4Sj3D+wd6lMNVInU7Np8o8L5Ihq9Y1ccHmyvbVdxeGPIfKo\n/j/WwoCQJPKFQJLjQru3s1nVOOYNE5/CUQEEeFguzRL43UtzywONc1+L4a2MOnqO\n8ywQF1OrxByFy9eFLdN5ETdDhriajx8VM0hRrmeLsiGcmVZet1lFjjkCgYEA9PoD\n3x2qaCrTe3mZPHzfayHYWVFFxvRYOjxmIbOdzQZPeQA1tXEHyHnY/z3ibA+v3iQu\nQ2n5RQM4/+ItjS2xrwL+hlU3yue67HfBuUyFcFjhEUu0sdN4439d3K9hAeX7eTfB\nZ2CsNieqPxYZj6tSL4+0Fru4o4VpD79u7pSlgFUCgYAdWiJoG4aauoJWUuuNMojf\ndx9LQr3zPriqJy2akAw3yJEejMMZ5ZwyE7z5r6vZeukGTXCmUD7KFXNWb/D/bmys\nyWHvhqnaeerafh9eT/HfZcKyx7Uyt1J+BheF7hjeki8AzXMO1Q8Kd/9gop/XXF6u\nI9JRV/LpKIQZHP214IkVUQKBgQCpqO09fIIkGmTUwuZJagIhZBM96Hd2zoq76lCh\nTpAfChvIJUkNG/bT9O8/9k/1nveh1VTlA2PLU+wJ606408iW+G/mAObe85YVZusX\ntdNEd4mIPPIrpdW3WOJckGmSswBydxbOzbj22Imjn16cjX4hylhi1ieNuDuG2IGv\nYess8QKBgQCrT1ATnUxqacw/x8RRJpZWV4rnrkujA2XPLu4YaMODzVSkk+HVEabH\nJtA4AV6O0bneAgywBltg9wL0L98Q6ckuEo6hA9rskvwxQAk9uawJDzy1Bq/aEcSD\nu707LpYyMboRA/+1Sw8GEYF1iKdVJnGN1pjse4V4mJvobPPEZ+4Atw==\n-----END RSA PRIVATE KEY-----"
             }
         }
+
 
 
 class VoteDecrypted(BaseModel):

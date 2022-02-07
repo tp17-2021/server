@@ -36,15 +36,16 @@ def connect_to_db():
 @pytest.mark.asyncio
 async def test_vote_valid_data():
     """
-    Everything is valid: public_key_pem, polling_place_id, token, party_id, election_id, candidates_ids
+    Everything is valid: aes_key, public_key_pem, polling_place_id, token, party_id, election_id, candidates_ids
     """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -57,7 +58,7 @@ async def test_vote_valid_data():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -67,7 +68,12 @@ async def test_vote_valid_data():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -84,8 +90,9 @@ async def test_vote_duplicate_tokens():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "eggc0tddwl",
@@ -98,7 +105,7 @@ async def test_vote_duplicate_tokens():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -108,8 +115,18 @@ async def test_vote_duplicate_tokens():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            },
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -126,8 +143,9 @@ async def test_vote_invalid_combination_of_token_and_polling_place_id():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "eggc0tddwl",
@@ -140,7 +158,7 @@ async def test_vote_invalid_combination_of_token_and_polling_place_id():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -150,7 +168,12 @@ async def test_vote_invalid_combination_of_token_and_polling_place_id():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -168,8 +191,9 @@ async def test_vote_invalid_party_id():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -182,7 +206,7 @@ async def test_vote_invalid_party_id():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -192,7 +216,12 @@ async def test_vote_invalid_party_id():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -209,8 +238,9 @@ async def test_vote_invalid_election_id():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
   
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -223,7 +253,7 @@ async def test_vote_invalid_election_id():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -233,7 +263,12 @@ async def test_vote_invalid_election_id():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -250,8 +285,9 @@ async def test_vote_more_than_5_candidates():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -267,7 +303,7 @@ async def test_vote_more_than_5_candidates():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -277,7 +313,12 @@ async def test_vote_more_than_5_candidates():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -294,8 +335,9 @@ async def test_vote_duplicate_candidates():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -307,7 +349,7 @@ async def test_vote_duplicate_candidates():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -317,7 +359,12 @@ async def test_vote_duplicate_candidates():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -334,8 +381,9 @@ async def test_vote_invalid_candidate_id():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -346,7 +394,7 @@ async def test_vote_invalid_candidate_id():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -356,7 +404,12 @@ async def test_vote_invalid_candidate_id():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -373,8 +426,9 @@ async def test_vote_invalid_candidate_id2():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -385,7 +439,7 @@ async def test_vote_invalid_candidate_id2():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -395,7 +449,12 @@ async def test_vote_invalid_candidate_id2():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
@@ -412,8 +471,9 @@ async def test_vote_invalid_candidate_id2():
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
-    public_key_pem = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"public_key_pem":1, "_id":0})
-    public_key_pem = public_key_pem["public_key_pem"]
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
 
     vote = {
         "token": "fjosjfidsw",
@@ -424,7 +484,7 @@ async def test_vote_invalid_candidate_id2():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(public_key_pem, vote)
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -434,9 +494,63 @@ async def test_vote_invalid_candidate_id2():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": encrypted_aes_key
+            }
         ]
     }
 
     response = client.post("/elections/vote", headers=headers, json=payload)
     assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_vote_invalid_aes_key():
+    """
+    Invalid aes key
+    """
+
+    db = connect_to_db()
+    asyncio.get_event_loop().run_until_complete(connect_to_mongo())
+
+    polling_place_id = 0
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    aes_key = key_pair["aes_key"]
+    public_key_pem = key_pair["public_key_pem"]
+
+    vote = {
+        "token": "fjosjfidsw",
+        "party_id": 10,
+        "election_id": "election_id",
+        "candidates_ids": [
+            1075,
+            1076,
+            1077
+        ]
+    }
+
+    encrypted_vote, tag, nonce, encrypted_aes_key = await electiersa.encrypt_vote(vote, aes_key, public_key_pem)
+
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "polling_place_id": polling_place_id,
+        "votes": [
+            {
+                "encrypted_vote": encrypted_vote,
+                "tag": tag,
+                "nonce": nonce,
+                "encrypted_aes_key": "invalid_encrypted_aes_key"
+            }
+        ]
+    }
+
+    response = client.post("/elections/vote", headers=headers, json=payload)
+    assert response.status_code == 400
+

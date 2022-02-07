@@ -22,7 +22,7 @@ router = APIRouter(
 async def create_key_pairs_for_polling_places():
     DB  = await get_database()
     
-    DB.key_pairs.drop()
+    # DB.key_pairs.drop()
 
     # --- toto potom odstranit
     count = 0
@@ -34,10 +34,13 @@ async def create_key_pairs_for_polling_places():
 
     for polling_place_id in polling_place_ids:
         if polling_place_id not in polling_place_ids_key_pairs:
+            aes_key = await electiersa.get_aes_key()
             private_key_pem, public_key_pem = await electiersa.get_rsa_key_pair()
 
             key_pair = {
+                "_id": polling_place_id,
                 "polling_place_id": polling_place_id,
+                "aes_key": aes_key,
                 "private_key_pem": private_key_pem,
                 "public_key_pem": public_key_pem
             }
@@ -54,11 +57,6 @@ async def create_key_pairs_for_polling_places():
         "message": "RSA cryptography keys successfully generated"
     }
     return content
-
-
-@router.get("/test-create-aes-key", status_code=status.HTTP_200_OK)
-async def create_aes_key():
-    return await electiersa.get_aes_key()
 
 
 @router.post("/test-encrypt-vote", response_model=schemas.VoteEncrypted, status_code=status.HTTP_200_OK)
