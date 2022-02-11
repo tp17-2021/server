@@ -14,8 +14,6 @@ COPY ./src /code/src
 
 COPY ./tests /code/tests
 
-# RUN pip install electiersa
-
 FROM base as test
 
 COPY ./seed_and_test.sh ./seed_and_test.sh

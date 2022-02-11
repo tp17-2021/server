@@ -13,11 +13,4 @@ aiomisc
 nest-asyncio
 IPython
 wheel
-
-# our custom library
 electiersa
-
-
-
-
-

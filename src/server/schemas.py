@@ -93,7 +93,7 @@ class Vote(BaseModel):
     candidates_ids: List[int] = []
 
 class VoteEncrypted(BaseModel):
-    encrypted_vote: str
+    encrypted_message: str
     encrypted_object: str
 
 class VotesEncrypted(BaseModel):
@@ -106,8 +106,8 @@ class VotesEncrypted(BaseModel):
                 "polling_place_id": 0,
                 "votes": [
                     {
-                        "encrypted_vote": "ODIj5dsfZZnlWG8Z8itIAZd6NyWORjwoCVxdn2miJkgj/sOdTOHDH6Vbhl7AAbdzePg6Ph5VvgpMH4XjRtEekXtbknCX2W+GEFmUK4N41yjJPan5JLWOLSlbhKugc6KQ5JKzAWDhha0VJU7sZkPuWjFOoPu7NPfCjcDKLrv+dcgubWQBlXE4J2LXB7pOmA84NiaE5A68cSe8cU64tcZ4eH4Wz0Kqq0J+thfX0sP/R3tOylsbZ7+uiRiGPI0dueHj4/2Xdb0C8OushIb2MnHgDpjwdIOXZD4Ws0iR7RvxNNDRe4JtgYTr7nfPyxLg6cqJednqTDBkT7O7DEufKsT62yxEhVd61Wcg8Fld6nsvrufj1ELSZMw9fLGep53f3RwpGCu8/2UHiry9K+X0aa4j157AhekR3/P57xL9uQ4AP+OjXAh4F6Z4X0SHJp5iSDmiQ/T+cXqmC8sdDubCnvLbtmr/3BRzLp3r+73zky5sYyWXbIWIENG9sIKLPeAUclJ6CzDA8qmShA5XScIADxUERweMELJ38+mJWDDTudV770eb4i1loM9cqkFA9a7l6tvjBCte4IcPmirP2Lqoqu2P7YUlbZIkWqoY9bWRxtcExpcM7PWWWmi/hy+H7LaYzA==",
-                        "encrypted_object": "rW7x+GZavc5Qws65sISVNX4wPZo/yBltXW/mAcza1TRYZX3uKEzTXtoc/gpBcdq2f8TjCduXumLGhAubOkxv69NdWF03QzHfYKcIUYnIVEWFYLieXKTbwAkO7apNH2OaTSSg6rRzn1j+BUvs4N92EMgo/2u61h43+WGfS3I4+cycQSqy/iVMEutLzKM8zHgZxt3tbl3wFQ7hbUMzei8f7zpVViyf8DjnUaGeH6hDqBypTeaKXJ8cK5x9XzsHKPx+KL2P7sHapUxqffej+EWZqkIi+y9TQ+y6Pu/w8yTyhk9YfoA4SwGLDPGqzd/Llhu7VvLkJb5PKa0wGDwnl3X7dQ=="
+                        "encrypted_message": "36AMNvcpAWdHAXKCSWexgyjxrt7xeWwhOf+oUMBqip/C051EZWlN4N4x3hVPwwIQh/l78suUNYYYQBTkERPkuaZ40D1NV4LM7nb+DHcQ0nzGIFxHND3CIDkT9UOi1AmrqrCtyVMpDP1SI/2glHjbMsrw9VowA3L8hbf3U4wSF65ocF5IxN8mrOraXUopMcu+GgFKjBh3Y56yhZfxwr7go2YvQwph1HuLYVkkBi3ZAk+1DHCuQ+oQC3ivVJPF6SBOHPJIgLGM5NUsJwq5MUWSgxlr+iQI/g/uWbjkcS7M9uBZE6+QRTD++6sqZhHxc8RTLVtqAmrp0m1We6kf/Nrx7KdqagpHQz1vgZEf50L+kVgXf9PnX1THB7U+jVB0ogvM1fmZ+JvWURHt9ZhgdO1wZvzigQP6jTNZw5amzga2T+6/KwC47dxdnnT/l/fSBXzgAbsCNWCegJfTakvpsCNjWRlPKIvbPcGEIZDKBaMTz/zhKHqTgQV/f3qmlHgq+GYVPsyl95NVBFiiYwWxYWvJIl8RCREfx39t2bAx74YsJ4fT8G3u438l6BvT5DMrEbN3YlAS7gwuRt4j3AQUWmyzHesIW1o/pJd+5IpNYQ3ld6363iu5G4mC00lnImnSig==",
+                        "encrypted_object": "lb5B/LAg2/38mot9jYzRpa9O6YwrXDilpspPrGrnTKKYUXVfQ9JhW5JIGoP6FuQBXM2XzlcXkb90/VDK6+h/HeJKEUf81h/A/KiN4AZVBtRoHXOpq1gyRpFk7q5dhHzniStAPZOLruNtrAYmOoUNq3hmHLxs2KnRTMZiEc9kOefIS1vjPKFAClNCqKL++7orwvRPWGzmLMPbq6DFc/Sb7hXVlBMiUCmS2iMtz9mgs9IXheCqvcGYZQZOubFK3zjtqOvFEjuGACUZkuGbmxHEFgbBMCUPXOH933aP8eNY33+UIKSc2DSNKTOOySJNi3EolJmUhbQT5NIWXf9lE3jqXg=="
                     }
                 ]
             }
@@ -137,17 +137,18 @@ class VoteToBeEncrypted(BaseModel):
         }
 
 class VoteToBeDecrypted(BaseModel):
-    encrypted_object: str
+    encrypted_vote: VoteEncrypted
     private_key_pem: str
-    encrypted_vote: str
     g_public_key_pem: str
 
     class Config:
         schema_extra = {
             "example": {
-                "encrypted_object": "rW7x+GZavc5Qws65sISVNX4wPZo/yBltXW/mAcza1TRYZX3uKEzTXtoc/gpBcdq2f8TjCduXumLGhAubOkxv69NdWF03QzHfYKcIUYnIVEWFYLieXKTbwAkO7apNH2OaTSSg6rRzn1j+BUvs4N92EMgo/2u61h43+WGfS3I4+cycQSqy/iVMEutLzKM8zHgZxt3tbl3wFQ7hbUMzei8f7zpVViyf8DjnUaGeH6hDqBypTeaKXJ8cK5x9XzsHKPx+KL2P7sHapUxqffej+EWZqkIi+y9TQ+y6Pu/w8yTyhk9YfoA4SwGLDPGqzd/Llhu7VvLkJb5PKa0wGDwnl3X7dQ==",
+                "encrypted_vote": {
+                    "encrypted_message": "ZiwaJl+BScLyGgpGqOu4jSG/MJ4vtgCYm4f6j5xh4TThD49y972z9bWALEe166HZzgKpqsBD36Vbstvd0VL8FeEF8TttOZWrBo1uT6c7d2Z5EzHWPAE5oScYwZ4288s8XJ+dHQv8h9dXpEaxGtKG/mzz3mhNh3oUwZ3T2DvlyUTEeMsD363XVpsyZy47je4mKEWBfEZgoC86OI6pYJ0Ckcxa5X0D7eql5ElzEHfVSpXr1LOh9DLzC+Hrj1oIIcYKSsw0uf275Pk+E1B34kDr+pePgBvRQIwQzXZP5KUPSil5U7qbiNjUy0M9Ztx1FZB0/YUux46AhHQdQhvDQ6gWeSlYV4tCJaKD+KTRqaLMUSZknOJLmWn1Ci1s95NIBlwP6izyhnCLPaiNaKdxmbbYOU6u6eBQ0ZRKS3ibW6s/tqtazfznF3fLdl6sn0KS7Yknkcg8Z3b7QSjrzcOsEhzw62AtblSUma7+mH3PXqDmXyuNjh1SG9ShbYA5CKdOmZZ6ksm8MWkfjtIiifN9bC+vgy7NuqWtdgfbb7CiqCMTm67/p2yG2wQEwsYEMbDc0LAYrfR5qtRxxy5bTdSXZWLXPcueS31tblkkMOW7BIk/dZCGeiSsFZ1wJOataPOlMg==",
+                    "encrypted_object": "oN59MQBwMNsdeABCNQt/I8DsDYLx3VdaIIGcBn06VhKArg/aTU5uomXkZs0+8Apm3ELYtHmNWeqpTms26PcFcyViEvFaylAja12ic5qs71Fg3LKzbXu1kB7SgBqDGcXQL2iAuaoBuLlrrTm0dJ69spduSekM/PUWWJwh5wTsMHGGoPJd2BgzwO2R+5RTEaeM733+D5/BYMbXlsOFfyfDhD4B8u297/hVAGLtHq666gHGJREsuaj+wzNx7JqB+PBGCjJa0CE519txpaztU9N9QMMuVwn/J6QHUbOTJk/KVDxcmWD6L9wAal00jwEnT7R9XlhOLJx4rdtxqfZ6ZNC7Jw=="
+                },
                 "private_key_pem": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAs6lvNfr+Eo6Mt+mW95fhjUbCRygCNok8Y8yIu502lpDiz3bN\ndR5qRZndlq7k+8XmIv2Qm8yD9BeBJbSyvc7IEpRSmY1nElabMoBbU2vsPWBsu7WR\n31pGDtAnQYCOvofScT98lar5WY5EOIV7ZzPuRVtuHy/q2tD5sY2ekWJc1YsoeQ5J\nDK64qXHZsGaIjblm+gQemucv5TG80+sgzf7c2P4NpNgSJ2NT8aF/bDbu3sQk9QuQ\nXTEnkgFxTPWCwhYzRvsyq6dSTnlbyk8xfchqrYj5Xnql/wcrnyOhcgeKsOBieH/f\nETheNm6xC6Ol9Zo0rFdtqgBDsIN6H5aPCfG47QIDAQABAoIBAAEotU5QfGpm8gUF\n/64cOMs1Bm/4E+QmCFrF5IQ1VFvlBBmQGZGko6i6AHR0CtCN2OuVAne9sTtfYyjU\nLvPdzUcMQ3q40+B3n5BB6UvFZ2SIiu1RE3nDCRyFx/VWATEqwZKTmaEUsO1BMHwx\nJWW5+K4tb1HunUZ20M2OEfkps39438Vk1R4I/kJqhp8E7mLYshBHyK1OwOgiInE4\n1Z2SwAhvGKnNE3TnBlV7/K5XFQg3b7QWORHvlvnNHU7ed8TXmizp7No6Qxl1ZJ2z\nier3f+XiMAryIb7AyBJyIWGnQllrDhff5hhNObltLmmaAkQm3LSsJ52GU9e4i/6c\nF/sshLECgYEAu78IM4Sj3D+wd6lMNVInU7Np8o8L5Ihq9Y1ccHmyvbVdxeGPIfKo\n/j/WwoCQJPKFQJLjQru3s1nVOOYNE5/CUQEEeFguzRL43UtzywONc1+L4a2MOnqO\n8ywQF1OrxByFy9eFLdN5ETdDhriajx8VM0hRrmeLsiGcmVZet1lFjjkCgYEA9PoD\n3x2qaCrTe3mZPHzfayHYWVFFxvRYOjxmIbOdzQZPeQA1tXEHyHnY/z3ibA+v3iQu\nQ2n5RQM4/+ItjS2xrwL+hlU3yue67HfBuUyFcFjhEUu0sdN4439d3K9hAeX7eTfB\nZ2CsNieqPxYZj6tSL4+0Fru4o4VpD79u7pSlgFUCgYAdWiJoG4aauoJWUuuNMojf\ndx9LQr3zPriqJy2akAw3yJEejMMZ5ZwyE7z5r6vZeukGTXCmUD7KFXNWb/D/bmys\nyWHvhqnaeerafh9eT/HfZcKyx7Uyt1J+BheF7hjeki8AzXMO1Q8Kd/9gop/XXF6u\nI9JRV/LpKIQZHP214IkVUQKBgQCpqO09fIIkGmTUwuZJagIhZBM96Hd2zoq76lCh\nTpAfChvIJUkNG/bT9O8/9k/1nveh1VTlA2PLU+wJ606408iW+G/mAObe85YVZusX\ntdNEd4mIPPIrpdW3WOJckGmSswBydxbOzbj22Imjn16cjX4hylhi1ieNuDuG2IGv\nYess8QKBgQCrT1ATnUxqacw/x8RRJpZWV4rnrkujA2XPLu4YaMODzVSkk+HVEabH\nJtA4AV6O0bneAgywBltg9wL0L98Q6ckuEo6hA9rskvwxQAk9uawJDzy1Bq/aEcSD\nu707LpYyMboRA/+1Sw8GEYF1iKdVJnGN1pjse4V4mJvobPPEZ+4Atw==\n-----END RSA PRIVATE KEY-----",
-                "encrypted_vote": "ODIj5dsfZZnlWG8Z8itIAZd6NyWORjwoCVxdn2miJkgj/sOdTOHDH6Vbhl7AAbdzePg6Ph5VvgpMH4XjRtEekXtbknCX2W+GEFmUK4N41yjJPan5JLWOLSlbhKugc6KQ5JKzAWDhha0VJU7sZkPuWjFOoPu7NPfCjcDKLrv+dcgubWQBlXE4J2LXB7pOmA84NiaE5A68cSe8cU64tcZ4eH4Wz0Kqq0J+thfX0sP/R3tOylsbZ7+uiRiGPI0dueHj4/2Xdb0C8OushIb2MnHgDpjwdIOXZD4Ws0iR7RvxNNDRe4JtgYTr7nfPyxLg6cqJednqTDBkT7O7DEufKsT62yxEhVd61Wcg8Fld6nsvrufj1ELSZMw9fLGep53f3RwpGCu8/2UHiry9K+X0aa4j157AhekR3/P57xL9uQ4AP+OjXAh4F6Z4X0SHJp5iSDmiQ/T+cXqmC8sdDubCnvLbtmr/3BRzLp3r+73zky5sYyWXbIWIENG9sIKLPeAUclJ6CzDA8qmShA5XScIADxUERweMELJ38+mJWDDTudV770eb4i1loM9cqkFA9a7l6tvjBCte4IcPmirP2Lqoqu2P7YUlbZIkWqoY9bWRxtcExpcM7PWWWmi/hy+H7LaYzA==",
                 "g_public_key_pem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1ZTVl1y9Zh2ZJ0EOW8eo\n+2EFBBRiHoDJazdLO+dckpHDpwwQLmwKquZqVhCogUQmIHJZ6b6QlFcxX0fTvizF\n0SsocvKeJ5orgaMeC2kjkgf1gMecwRDkn7tFhoezQ8xYGhlcZVho9CzBJKNmmDoh\nqkWpgguAOQnEzt07c2o5drH03km9nF1Nbsu/B05CozK3LRC+mnZUowNwtzQV7tPA\nYLshpK+awmJ8upqAwy+7JHXPfVz/beShMuMXxGi28jUYe5rGLWrO73xbkxMkI+dK\n0Gxym0UG1LodR9hp+EmWoem8HJqYE5L1HhqJCy8bNP+5EeXFhaohRfMhMcWE9AIn\nswIDAQAB\n-----END PUBLIC KEY-----",
             }
         }

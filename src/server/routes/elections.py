@@ -177,16 +177,12 @@ async def validate_votes(request):
 
     tokens_to_be_validated = []
 
-    for _id, vote in enumerate(votes):
-        vote = dict(vote)
-
-        encrypted_vote = vote["encrypted_vote"]
-        encrypted_object = vote["encrypted_object"]
-
+    for _id, encrypted_vote in enumerate(votes):
+        encrypted_vote = dict(encrypted_vote)
         private_key_pem = key_pair["private_key_pem"]
         g_public_key_pem = key_pair["g_public_key_pem"]
 
-        decrypted_vote = await electiersa.decrypt_vote(encrypted_object, private_key_pem, encrypted_vote, g_public_key_pem)
+        decrypted_vote = await electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
         content = await validate_decryption(decrypted_vote, polling_place_id, max_id, _id)
         if content["status"] == "failure":
             return content
