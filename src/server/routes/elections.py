@@ -5,7 +5,7 @@ import string
 import random
 from pytest import yield_fixture
 
-from rsaelectie import rsaelectie
+from electiersa import electiersa
 
 import traceback
 from fastapi import status, APIRouter
@@ -131,6 +131,29 @@ async def validate_election_id(election_id):
     return content
 
 
+async def validate_decryption(decrypted_vote, polling_place_id, max_id, _id):
+    if decrypted_vote is None:
+        content = {
+            "status": "failure",
+            "message": "Invalid decryption",
+        }
+        return content
+    try:
+        decrypted_vote["polling_place_id"] = polling_place_id
+        decrypted_vote["_id"] = max_id + 1 + _id
+    except:
+        content = {
+            "status": "failure",
+            "message": "Invalid decryption",
+        }
+        return content
+    content = {
+        "status": "success",
+        "message": "Decryption was successfully validated",
+    }
+    return content
+
+
 async def validate_votes(request):
     DB = await get_database()
 
@@ -149,15 +172,21 @@ async def validate_votes(request):
         return content
 
     votes_to_be_inserted = []
-    encrypted_votes = request.votes
+    votes = request.votes
     max_id = await get_max_id("votes")
 
     tokens_to_be_validated = []
 
-    for _id, encrypted_vote in enumerate(encrypted_votes):
+    for _id, encrypted_vote in enumerate(votes):
+        encrypted_vote = dict(encrypted_vote)
         private_key_pem = key_pair["private_key_pem"]
-        
-        decrypted_vote = await rsaelectie.decrypt_vote(private_key_pem, encrypted_vote)
+        g_public_key_pem = key_pair["g_public_key_pem"]
+
+        decrypted_vote = await electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
+        content = await validate_decryption(decrypted_vote, polling_place_id, max_id, _id)
+        if content["status"] == "failure":
+            return content
+            
         decrypted_vote["polling_place_id"] = polling_place_id
         decrypted_vote["_id"] = max_id + 1 + _id
 
@@ -207,11 +236,18 @@ async def vote(request: schemas.VotesEncrypted):
 
 @router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
 async def get_voting_data():
+    DB = await get_database()
+
+    polling_places = [polling_place async for polling_place in DB.polling_places.find()]
     parties_with_candidates = await get_parties_with_candidates()
+    key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
+    print(key_pairs)
     
     # -----
     # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
+    polling_places = polling_places[:2]
     parties_with_candidates = parties_with_candidates[:2]
+    key_pairs = key_pairs[:2]
     # -----
     
     # multilingual text for VT application
@@ -240,7 +276,9 @@ async def get_voting_data():
                     party_with_candidates["image_bytes"] = image_bytes
 
     content = {
+        "polling_places": polling_places,
         "parties": parties_with_candidates,
+        "key_pairs": key_pairs,
         "texts": texts
     }
     return content
