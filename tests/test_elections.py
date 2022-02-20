@@ -68,7 +68,7 @@ async def test_vote_valid_data():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 
@@ -110,8 +110,8 @@ async def test_vote_duplicate_tokens():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote,
-            encrypted_vote
+            encrypted_vote.__dict__,
+            encrypted_vote.__dict__
         ]
     }
 
@@ -153,7 +153,7 @@ async def test_vote_invalid_combination_of_token_and_polling_place_id():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 
@@ -196,7 +196,7 @@ async def test_vote_invalid_party_id():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 
@@ -238,7 +238,7 @@ async def test_vote_invalid_election_id():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 
@@ -283,7 +283,7 @@ async def test_vote_more_than_5_candidates():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 
@@ -324,7 +324,7 @@ async def test_vote_duplicate_candidates():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 
@@ -364,7 +364,7 @@ async def test_vote_invalid_candidate_id0():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 
@@ -404,7 +404,7 @@ async def test_vote_invalid_candidate_id1():
     payload = {
         "polling_place_id": polling_place_id,
         "votes": [
-            encrypted_vote
+            encrypted_vote.__dict__
         ]
     }
 

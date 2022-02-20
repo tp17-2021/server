@@ -178,7 +178,6 @@ async def validate_votes(request):
     tokens_to_be_validated = []
 
     for _id, encrypted_vote in enumerate(votes):
-        encrypted_vote = dict(encrypted_vote)
         private_key_pem = key_pair["private_key_pem"]
         g_public_key_pem = key_pair["g_public_key_pem"]
 

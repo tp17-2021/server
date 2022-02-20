@@ -28,6 +28,8 @@ async def load_json(path):
 
 
 async def seed():
+    print("starting seeder")
+
     CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
         f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
     )
@@ -35,11 +37,11 @@ async def seed():
 
     random.seed(1)
 
-    DB.parties.drop()
-    DB.candidates.drop()
-    DB.polling_places.drop()
-    DB.votes.drop()
-    DB.key_pairs.drop()
+    await DB.parties.drop()
+    await DB.candidates.drop()
+    await DB.polling_places.drop()
+    await DB.votes.drop()
+    await DB.key_pairs.drop()
 
     parties = await load_json("/code/data/nrsr_2020/parties_transformed.json")
     for _id, party in enumerate(parties):
@@ -109,4 +111,9 @@ async def seed():
     }
     await DB.key_pairs.insert_one(key_pair)
 
+    print("done")
+
+
+print("Seeding key pairs...")
 asyncio.run(seed())
+print("Seeding key pairs... Done!")
