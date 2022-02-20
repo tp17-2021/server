@@ -58,7 +58,7 @@ async def test_vote_valid_data():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -100,7 +100,7 @@ async def test_vote_duplicate_tokens():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -143,7 +143,7 @@ async def test_vote_invalid_combination_of_token_and_polling_place_id():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -186,7 +186,7 @@ async def test_vote_invalid_party_id():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -228,7 +228,7 @@ async def test_vote_invalid_election_id():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -273,7 +273,7 @@ async def test_vote_more_than_5_candidates():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -314,7 +314,7 @@ async def test_vote_duplicate_candidates():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -354,7 +354,7 @@ async def test_vote_invalid_candidate_id0():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -394,7 +394,7 @@ async def test_vote_invalid_candidate_id1():
         ]
     }
 
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
 
     headers = {
         "accept": "application/json",
@@ -435,7 +435,7 @@ async def test_vote_invalid_g_private_key_pem():
     }
 
     try:
-        await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+        electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
     except:
         assert True
 
@@ -463,7 +463,7 @@ async def test_vote_invalid_public_key_pem():
     }
 
     try:
-        await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+        electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
     except:
         assert True
 
@@ -488,6 +488,6 @@ async def test_vote_invalid_keys():
     }
 
     try:
-        await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+        electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
     except:
         assert True

@@ -34,8 +34,8 @@ async def create_key_pairs_for_polling_places():
 
     for polling_place_id in polling_place_ids:
         if polling_place_id not in polling_place_ids_key_pairs:
-            private_key_pem, public_key_pem = await electiersa.get_rsa_key_pair()
-            g_private_key_pem, g_public_key_pem = await electiersa.get_rsa_key_pair()
+            private_key_pem, public_key_pem = electiersa.get_rsa_key_pair()
+            g_private_key_pem, g_public_key_pem = electiersa.get_rsa_key_pair()
 
             key_pair = {
                 "_id": polling_place_id,
@@ -67,7 +67,7 @@ async def test_encrypt_vote(request: schemas.VoteToBeEncrypted):
     g_private_key_pem = request.g_private_key_pem
     public_key_pem = request.public_key_pem
         
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
     return encrypted_vote
 
 
@@ -77,5 +77,5 @@ async def test_decrypt_vote(request: schemas.VoteToBeDecrypted):
     private_key_pem = request.private_key_pem
     g_public_key_pem = request.g_public_key_pem
 
-    vote = await electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
+    vote = electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
     return vote
