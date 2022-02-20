@@ -24,7 +24,7 @@ class Texts(BaseModel):
     election_date: Text
 
 class Candidate(BaseModel):
-    _id: int
+    id: int = Field(..., alias='_id')
     party_number: int
     order: int
     first_name: str
@@ -35,7 +35,7 @@ class Candidate(BaseModel):
     residence: str
     
 class Party(BaseModel):
-    _id: int
+    id: int = Field(..., alias='_id')
     party_number: int
     name: str
     abbreviation: str
@@ -44,7 +44,7 @@ class Party(BaseModel):
     candidates: List[Candidate] = []
 
 class PollingPlace(BaseModel):
-    _id: int
+    id: int = Field(..., alias='_id')
     region_code: int
     region_name: str
     administrative_area_code: int
@@ -73,7 +73,7 @@ class PollingPlace(BaseModel):
         }
 
 class KeyPair(BaseModel):
-    _id: int
+    id: int = Field(..., alias='_id')
     polling_place_id: int
     private_key_pem: str
     public_key_pem: str
