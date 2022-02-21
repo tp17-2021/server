@@ -18,7 +18,7 @@ import traceback
 from fastapi import status, APIRouter
 from fastapi.responses import JSONResponse
 
-from src.server import config as c
+from src.server import config
 from src.server import schemas
 from src.server.database import DB, get_database
 from src.server.database import get_parties_with_candidates, get_max_id

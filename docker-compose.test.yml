@@ -17,7 +17,7 @@ services:
       - SERVER_DB_HOST=server-db
       - SERVER_DB_PORT=27017
       - SERVER_DB_NAME=server-db
-      - ELASTIC_HOST=electie_es_01
+      - ELASTIC_HOST=electie_test_es_01
       - ELASTIC_PORT=9200
       - ROOT_PATH=
 
@@ -31,14 +31,14 @@ services:
       - PUID=1000
       - PGID=1000
   
-  electie_es_01:
+  electie_test_es_01:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
-    container_name: electie_es_01
+    container_name: electie_test_es_01
     environment:
-      - node.name=electie_es_01
+      - node.name=electie_test_es_01
       - cluster.name=es-docker-cluster
-      - discovery.seed_hosts=electie_es_02,electie_es_03
-      - cluster.initial_master_nodes=electie_es_01,electie_es_02,electie_es_03
+      - discovery.seed_hosts=electie_test_es_02,electie_test_es_03
+      - cluster.initial_master_nodes=electie_test_es_01,electie_test_es_02,electie_test_es_03
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ulimits:
@@ -50,14 +50,14 @@ services:
     ports:
       - 9200:9200
 
-  electie_es_02:
+  electie_test_es_02:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
-    container_name: electie_es_02
+    container_name: electie_test_es_02
     environment:
-      - node.name=electie_es_02
+      - node.name=electie_test_es_02
       - cluster.name=es-docker-cluster
-      - discovery.seed_hosts=electie_es_01,electie_es_03
-      - cluster.initial_master_nodes=electie_es_01,electie_es_02,electie_es_03
+      - discovery.seed_hosts=electie_test_es_01,electie_test_es_03
+      - cluster.initial_master_nodes=electie_test_es_01,electie_test_es_02,electie_test_es_03
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ulimits:
@@ -67,14 +67,14 @@ services:
     volumes:
       - data02:/usr/share/elasticsearch/data
 
-  electie_es_03:
+  electie_test_es_03:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
-    container_name: electie_es_03
+    container_name: electie_test_es_03
     environment:
-      - node.name=electie_es_03
+      - node.name=electie_test_es_03
       - cluster.name=es-docker-cluster
-      - discovery.seed_hosts=electie_es_01,electie_es_02
-      - cluster.initial_master_nodes=electie_es_01,electie_es_02,electie_es_03
+      - discovery.seed_hosts=electie_test_es_01,electie_test_es_02
+      - cluster.initial_master_nodes=electie_test_es_01,electie_test_es_02,electie_test_es_03
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ulimits:
