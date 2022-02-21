@@ -5,6 +5,7 @@ import traceback
 import base64
 import random
 import string
+from pprint import pprint
 
 from electiersa import electiersa
 
@@ -105,20 +106,21 @@ async def import_data():
 
 
 async def generate_token():
-    random.seed(config.SEED)
+    # random.seed(config.SEED)
     token = "".join([random.choice(string.ascii_lowercase + string.digits) for _ in range(10)])
     return token
 
 async def choose_candidates(candidates):
-    random.seed(config.SEED)
-    candidates = random.sample(candidates, random.randint(0,5))
+    # random.seed(config.SEED)
+    candidates = random.sample(candidates, random.randint(1,5))
+    print("picked ", len(candidates), "candidates")
     return candidates
 
 
 @router.post("/seed-data", response_model=schemas.Message, status_code=status.HTTP_200_OK)
 async def seed_data(number_of_votes: int):
     DB  = await get_database()
-
+    
     random.seed(config.SEED)
 
     DB.parties.drop()
