@@ -113,14 +113,13 @@ async def generate_token():
 async def choose_candidates(candidates):
     # random.seed(config.SEED)
     candidates = random.sample(candidates, random.randint(1,5))
-    print("picked ", len(candidates), "candidates")
     return candidates
 
 
 @router.post("/seed-data", response_model=schemas.Message, status_code=status.HTTP_200_OK)
 async def seed_data(number_of_votes: int):
     DB  = await get_database()
-    
+
     random.seed(config.SEED)
 
     DB.parties.drop()
@@ -202,3 +201,49 @@ async def seed_data(number_of_votes: int):
     }
     return content
     
+
+@router.post("/seed-votes", response_model=schemas.Message, status_code=status.HTTP_200_OK)
+async def seed_votes(number_of_votes: int):
+    DB  = await get_database()
+
+    polling_places = [polling_place async for polling_place in DB.polling_places.find()]
+    parties = await get_parties_with_candidates()
+
+    votes_to_be_inserted = []
+    for _id in range(number_of_votes):
+        vote = {
+            # "_id": None,
+            "token": None,
+            "party_id": None,
+            "election_id": None,
+            "candidate_ids": [],
+            "polling_place_id": None
+        }
+
+        # TODO toto tu je problem treba prediskutovat
+        # vote["_id"] = _id
+
+        selected_polling_place = random.choice(polling_places)
+        vote["polling_place_id"] = selected_polling_place["_id"]
+
+        selected_token = await generate_token()
+        vote["token"] = selected_token
+
+        selected_party = random.choice(parties)
+        vote["party_id"] = selected_party["_id"]
+
+        vote["election_id"] = config.ELECTION_ID
+
+        selected_candidates = await choose_candidates(selected_party["candidates"])
+        for selected_candidate in selected_candidates:
+            vote["candidate_ids"].append(selected_candidate["_id"])
+
+        votes_to_be_inserted.append(vote)
+
+    await DB.votes.insert_many(votes_to_be_inserted)
+
+    content = {
+        "status": "success",
+        "message": f"{number_of_votes} votes successfully seeded"
+    }
+    return content

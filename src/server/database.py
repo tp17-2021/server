@@ -33,6 +33,7 @@ async def get_parties_with_candidates():
     parties_with_candidates = [party_with_candidate async for party_with_candidate in DB.parties.aggregate(pipeline)]
     return parties_with_candidates
 
+# TODO prerobit, toto neni dobre (treba na urovni db spravit)
 async def get_max_id(collection_name):
     ids = [doc["_id"] async for doc in DB[collection_name].find({}, {"_id":1})]
     ids.sort()

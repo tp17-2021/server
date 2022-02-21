@@ -52,7 +52,7 @@ def elasticsearch_curl(uri='', method='get', json_data=''):
         elif method.lower() == "put":
             resp = requests.put(uri, headers=headers, json=json_data)
         elif method.lower() == "delete":
-            resp = requests.delete(uri, headers=headers, json=json_data)
+            resp = requests.delete(uri, headers=headers)
 
         # read the text object string
         try:
@@ -199,7 +199,6 @@ async def setup_elastic_votes_index():
 # TODO run as cron
 # TODO database transaction (ATOMIC)
 # TODO insertovanie cisla id pre vote nech neni od 1 ale object random id
-# TODO spravit menej dopytov najlepsie 1
 # TODO check if inserted correctly
 # TODO spravit statistiku pre candidates https://stackoverflow.com/questions/34043808/terms-aggregation-for-nested-field-in-elastic-search/34047463
 # https://stackoverflow.com/questions/44779794/elastic-search-group-by-multiple-fields-with-filter
@@ -217,11 +216,41 @@ async def synchronize_votes_ES():
 
     # get bulk votes that are not synced
     unsynced_votes = [vote async for vote in DB.votes.aggregate([
-        { '$match': {
-            'synchronized': None
-        }
+        {
+            '$match': {
+                'synchronized': None
+            }
         }, {
             '$limit': c.ES_SYNCHRONIZATION_BATCH_SIZE
+        }, {
+            '$lookup': {
+                'from': 'parties', 
+                'localField': 'party_id', 
+                'foreignField': '_id', 
+                'as': 'party'
+            }
+        }, {
+            '$unwind': {
+                'path': '$party'
+            }
+        }, {
+            '$lookup': {
+                'from': 'polling_places', 
+                'localField': 'polling_place_id', 
+                'foreignField': '_id', 
+                'as': 'polling_place'
+            }
+        }, {
+            '$unwind': {
+                'path': '$polling_place'
+            }
+        }, {
+            '$lookup': {
+                'from': 'candidates', 
+                'localField': 'candidate_ids', 
+                'foreignField': '_id', 
+                'as': 'candidates'
+            }
         }
     ])]
 
@@ -229,24 +258,19 @@ async def synchronize_votes_ES():
     data = []
     for vote in unsynced_votes:
 
-        polling_place_id = vote["polling_place_id"]
-
+        party = vote["party"]
+        polling_place = vote["polling_place"]
         candidates = []
-        for candidate_id in vote["candidate_ids"]:
 
-            candidate_data = await DB.candidates.find_one({"_id": candidate_id})
+        for candidate in vote["candidates"]:
 
-            name = f'{candidate_data["first_name"]} {candidate_data["last_name"]}'
-            name = candidate_data["degrees_before"] + " " + name if len(candidate_data["degrees_before"]) else name
+            name = f'{candidate["first_name"]} {candidate["last_name"]}'
+            name = candidate["degrees_before"] + " " + name if len(candidate["degrees_before"]) else name
             candidates.append({
-                "id" : str(candidate_id),
+                "id" : str(candidate["_id"]),
                 "fullname" : name,
-                "number" : int(candidate_data["order"])
+                "number" : int(candidate["order"])
             })
-
-        
-        party_data = await DB.parties.find_one({"_id": vote["party_id"]})
-        polling_place_data = await DB.polling_places.find_one({"_id": polling_place_id})
 
         vote_data = {   
             "id" : str(vote["_id"]),
@@ -255,14 +279,14 @@ async def synchronize_votes_ES():
             "date" : int(time.time()),
             "party" : {
                 "id" : str(vote["party_id"]),
-                "name" : party_data["name"]
+                "name" : party["name"]
             },
             "polling_place": {
-                "id" : str(polling_place_id),
-                "municipality_name" : polling_place_data["municipality_name"],
-                "administrative_area_name": polling_place_data["administrative_area_name"],
-                "county_name" : polling_place_data["county_name"],
-                "region_name" : polling_place_data["region_name"]
+                "id" : str(polling_place["_id"]),
+                "municipality_name" : polling_place["municipality_name"],
+                "administrative_area_name": polling_place["administrative_area_name"],
+                "county_name" : polling_place["county_name"],
+                "region_name" : polling_place["region_name"]
             },
             "candidates": candidates
         }
@@ -328,7 +352,7 @@ async def get_parties_results():
     return response
 
 # TODO change response schema
-@router.post("/get-party-candidates-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+@router.post("/get-party-candidate-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_parties_with_candidates_results():
     request_body = {
         "size": 0,
