@@ -6,23 +6,33 @@ import random
 from pytest import yield_fixture
 
 from electiersa import electiersa
+from multiprocessing.sharedctypes import synchronized
+import random
+import string
+import time
+import os
+from pprint import pprint
 
 import traceback
 from fastapi import status, APIRouter
 from fastapi.responses import JSONResponse
 
-from src.server import config
+from src.server import config as c
 from src.server import schemas
 from src.server.database import DB, get_database
 from src.server.database import get_parties_with_candidates, get_max_id
 import asyncio
+
+from elasticsearch import Elasticsearch, helpers
+
+# Main elastic search connction
+ES = Elasticsearch(hosts= [{"scheme": "http", 'host': os.environ['ELASTIC_HOST'],'port': int(os.environ['ELASTIC_PORT'])}])
 
 # Create FastAPI router
 router = APIRouter(
     prefix = "/elections",
     tags = ["Elections"],
 )
-
 
 async def validate_polling_place_id(polling_place_id):
     DB  = await get_database()
@@ -219,7 +229,6 @@ async def validate_votes(request):
     }
     return content
 
-
 @router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}})
 async def vote(request: schemas.VotesEncrypted):
     """
@@ -230,8 +239,6 @@ async def vote(request: schemas.VotesEncrypted):
     if content["status"] == "failure":
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)
     return content
-
-
 
 @router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
 async def get_voting_data():
@@ -281,3 +288,118 @@ async def get_voting_data():
         "texts": texts
     }
     return content
+
+# helper function for bulk import, inserts index name into object,
+def bulk_insert_documents(index, data):
+
+    start_time = time.time()
+    count = len(data)
+    
+    for row in data:
+        row["_index"] = index
+
+    res = helpers.bulk(ES, data)
+    print(f"Inserted {count} documents. Took {round(time.time() - start_time,3)} s")
+    return res
+
+# TODO add request schema
+@router.post("/setup-elastic-vote-index", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+async def setup_elastic_votes_index():
+    
+    if not ES.ping():
+        raise ValueError("Connection to ES failed")
+
+    content = {
+        "status": "success",
+        "message": f"ES index setup success"
+    }
+    return content
+
+# TODO run as cron
+# TODO add request schema
+# TODO database transaction (ATOMIC)
+# TODO insertovanie cisla id pre vote nech neni od 1 ale object random id
+# TODO spravit menej dopytov najlepsie 1
+
+@router.post("/synchronize-votes-es", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+async def synchronize_votes_ES():
+
+    if not ES.ping():
+        raise ValueError("Connection to ES failed")
+
+    DB  = await get_database()
+
+    # get bulk votes that are not synced
+    unsynced_votes = [vote async for vote in DB.votes.aggregate([
+        { '$match': {
+            'synchronized': None
+        }
+        }, {
+            '$limit': c.ES_SYNCHRONIZATION_BATCH_SIZE
+        }
+    ])]
+
+    # insert them to ES
+    data = []
+    for vote in unsynced_votes:
+
+        polling_place_id = vote["polling_place_id"]
+
+        candidates = []
+        for candidate_id in vote["candidates_ids"]:
+
+            candidate_data = await DB.candidates.find_one({"_id": candidate_id})
+
+            name = f'{candidate_data["first_name"]} {candidate_data["last_name"]}'
+            name = candidate_data["degrees_before"] + " " + name if len(candidate_data["degrees_before"]) else name
+            candidates.append({
+                "id" : str(candidate_id),
+                "fullname" : name,
+                "number" : int(candidate_data["order"])
+            })
+
+        
+        party_data = await DB.parties.find_one({"_id": vote["party_id"]})
+        polling_place_data = await DB.polling_places.find_one({"_id": polling_place_id})
+
+        vote_data = {   
+            "id" : str(vote["_id"]),
+            "token" : vote["token"],
+            "election_id": vote["election_id"],
+            "date" : int(time.time()),
+            "party" : {
+                "id" : str(vote["party_id"]),
+                "name" : party_data["name"]
+            },
+            "polling_place": {
+                "id" : str(polling_place_id),
+                "municipality_name" : polling_place_data["municipality_name"],
+                "administrative_area_name": polling_place_data["administrative_area_name"],
+                "county_name" : polling_place_data["county_name"],
+                "region_name" : polling_place_data["region_name"]
+            },
+            "candidates": candidates
+        }
+        data.append(vote_data)
+
+    if len(data):    
+        bulk_insert_documents("votes", data)
+
+        # update synced votes state
+        unsynced_votes_ids = [ vote["_id"] for vote in unsynced_votes]
+        await DB.votes.update_many(
+            { 
+                "_id" : {
+                    "$in" : unsynced_votes_ids
+                }
+            },
+            { "$set": { "synchronized": True }},
+        )
+
+    content = {
+        "status": "success",
+        "message": f"{len(data)} votes were successfully synchronized"
+    }
+
+    return content
+    # TODO check if inserted correctly

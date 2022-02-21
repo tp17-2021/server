@@ -14,3 +14,4 @@ nest-asyncio
 IPython
 wheel
 electiersa
+elasticsearch

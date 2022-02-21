@@ -1,0 +1,12 @@
+https://www.elastic.co/guide/en/elasticsearch/reference/8.0/docker.html#docker-compose-file
+
+- Keď vám na windowse napíše v logoch že max memory limit nestačí tak tieto prikazy vám to vyriešia
+
+```
+docker-machine ssh
+sudo sysctl -w vm.max_map_count=262144
+
+wsl -d docker-desktop
+sysctl -w vm.max_map_count=262144
+```
+
