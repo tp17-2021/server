@@ -69,7 +69,7 @@ async def seed():
             "token": None,
             "party_id": None,
             "election_id": None,
-            "candidates_ids": [],
+            "candidate_ids": [],
             "polling_place_id": None
         }
         vote["_id"] = _id
@@ -87,7 +87,7 @@ async def seed():
 
         selected_candidates = random.sample(selected_party["candidates"], random.randint(0,5))
         for selected_candidate in selected_candidates:
-            vote["candidates_ids"].append(selected_candidate["_id"])
+            vote["candidate_ids"].append(selected_candidate["_id"])
 
         votes_to_be_inserted.append(vote)
 

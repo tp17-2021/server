@@ -232,7 +232,7 @@ async def synchronize_votes_ES():
         polling_place_id = vote["polling_place_id"]
 
         candidates = []
-        for candidate_id in vote["candidates_ids"]:
+        for candidate_id in vote["candidate_ids"]:
 
             candidate_data = await DB.candidates.find_one({"_id": candidate_id})
 

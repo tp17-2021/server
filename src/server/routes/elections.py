@@ -53,16 +53,16 @@ async def validate_polling_place_id(polling_place_id):
 
 
 async def validate_party_and_candidates(vote):
-    candidates_ids = vote["candidates_ids"]
+    candidate_ids = vote["candidate_ids"]
 
-    if len(candidates_ids) > 5:
+    if len(candidate_ids) > 5:
         content = {
             "status": "failure",
             "message": "Number of candidates is more than 5",
         }
         return content
 
-    if len(set(candidates_ids)) != len(candidates_ids):
+    if len(set(candidate_ids)) != len(candidate_ids):
         content = {
             "status": "failure",
             "message": "Duplicate candidates ids",
@@ -74,10 +74,10 @@ async def validate_party_and_candidates(vote):
         if party["_id"] == vote["party_id"]:
             candidate_match_count = 0
             for candidate in party["candidates"]:
-                if candidate["_id"] in candidates_ids:
+                if candidate["_id"] in candidate_ids:
                     candidate_match_count += 1
 
-            if candidate_match_count == len(candidates_ids):
+            if candidate_match_count == len(candidate_ids):
                 content = {
                     "status": "success",
                     "message": "Parties with candidates were successfully validated",

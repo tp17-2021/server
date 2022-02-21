@@ -99,7 +99,7 @@ async def test_get_vote_by_id():
         "token" : "nr1waa4uhx",
         "party_id" : 22,
         "election_id" : "election_id",
-        "candidates_ids" : [
+        "candidate_ids" : [
             2431
         ],
         "polling_place_id" : 4640,
@@ -122,7 +122,7 @@ async def test_insert_vote():
         "token" : "abcefghijk",
         "party_id" : 0,
         "election_id" : "election_id",
-        "candidates_ids" : [
+        "candidate_ids" : [
             0,
             1,
             2,

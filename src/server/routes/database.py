@@ -154,7 +154,7 @@ async def seed_data(number_of_votes: int):
             "token": None,
             "party_id": None,
             "election_id": None,
-            "candidates_ids": [],
+            "candidate_ids": [],
             "polling_place_id": None
         }
         vote["_id"] = _id
@@ -172,7 +172,7 @@ async def seed_data(number_of_votes: int):
 
         selected_candidates = await choose_candidates(selected_party["candidates"])
         for selected_candidate in selected_candidates:
-            vote["candidates_ids"].append(selected_candidate["_id"])
+            vote["candidate_ids"].append(selected_candidate["_id"])
 
         votes_to_be_inserted.append(vote)
 

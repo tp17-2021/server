@@ -36,7 +36,7 @@ def connect_to_db():
 @pytest.mark.asyncio
 async def test_vote_valid_data():
     """
-    Everything is valid: aes_key, public_key_pem, polling_place_id, token, party_id, election_id, candidates_ids
+    Everything is valid: aes_key, public_key_pem, polling_place_id, token, party_id, election_id, candidate_ids
     """
 
     db = connect_to_db()
@@ -51,7 +51,7 @@ async def test_vote_valid_data():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             1075,
             1076,
             1077
@@ -93,7 +93,7 @@ async def test_vote_duplicate_tokens():
         "token": "eggc0tddwl",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             1075,
             1076,
             1077
@@ -136,7 +136,7 @@ async def test_vote_invalid_combination_of_token_and_polling_place_id():
         "token": "eggc0tddwl",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             1075,
             1076,
             1077
@@ -179,7 +179,7 @@ async def test_vote_invalid_party_id():
         "token": "fjosjfidsw",
         "party_id": -1,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             1075,
             1076,
             1077
@@ -221,7 +221,7 @@ async def test_vote_invalid_election_id():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "no_match_election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             1075,
             1076,
             1077
@@ -263,7 +263,7 @@ async def test_vote_more_than_5_candidates():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             1075,
             1076,
             1077,
@@ -308,7 +308,7 @@ async def test_vote_duplicate_candidates():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             1075,
             1075
         ]
@@ -349,7 +349,7 @@ async def test_vote_invalid_candidate_id0():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             -1
         ]
     }
@@ -389,7 +389,7 @@ async def test_vote_invalid_candidate_id1():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             0
         ]
     }
@@ -429,7 +429,7 @@ async def test_vote_invalid_g_private_key_pem():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             0
         ]
     }
@@ -457,7 +457,7 @@ async def test_vote_invalid_public_key_pem():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             0
         ]
     }
@@ -482,7 +482,7 @@ async def test_vote_invalid_keys():
         "token": "fjosjfidsw",
         "party_id": 10,
         "election_id": "election_id",
-        "candidates_ids": [
+        "candidate_ids": [
             0
         ]
     }

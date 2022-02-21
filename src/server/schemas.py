@@ -90,7 +90,7 @@ class Vote(BaseModel):
     token: str
     party_id: int
     election_id: str
-    candidates_ids: List[int] = []
+    candidate_ids: List[int] = []
 
 class VoteEncrypted(BaseModel):
     encrypted_message: str
@@ -125,7 +125,7 @@ class VoteToBeEncrypted(BaseModel):
                     "token": "fjosjfidsw",
                     "party_id": 10,
                     "election_id": "election_id",
-                    "candidates_ids": [
+                    "candidate_ids": [
                         1158,
                         1077,
                         1191,
