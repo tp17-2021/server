@@ -95,9 +95,10 @@ async def setup_elastic_votes_index():
     # Drop index if exists
     # -------------------------------------------------------------------------
     response = elasticsearch_curl(
-            uri='/votes/',
+            uri='/votes/?ignore_unavailable=true',
             method='delete'
     )
+    
     if("acknowledged" not in response or response["acknowledged"] != True):
         raise Exception("Delete index failed")    
 
