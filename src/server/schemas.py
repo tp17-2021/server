@@ -1,27 +1,32 @@
 from typing import Collection
 from pydantic import BaseModel, validator, Extra, Field
-from typing import List
+from typing import List, Optional
 
 
 class Message(BaseModel):
     status: str
     message: str
 
+
 class Collection(BaseModel):
     name: str
     keys: List[str] = []
 
+
 class Collections(BaseModel):
     collections: List[Collection] = []
+
 
 class Text(BaseModel):
     sk: str
     en: str
 
+
 class Texts(BaseModel):
     elections_name_short: Text
     elections_name_long: Text
     election_date: Text
+
 
 class Candidate(BaseModel):
     id: int = Field(..., alias='_id')
@@ -33,7 +38,8 @@ class Candidate(BaseModel):
     age: int
     occupation: str
     residence: str
-    
+
+
 class Party(BaseModel):
     id: int = Field(..., alias='_id')
     party_number: int
@@ -42,6 +48,7 @@ class Party(BaseModel):
     image: str
     image_bytes: str
     candidates: List[Candidate] = []
+
 
 class PollingPlace(BaseModel):
     id: int = Field(..., alias='_id')
@@ -72,6 +79,7 @@ class PollingPlace(BaseModel):
             }
         }
 
+
 class KeyPair(BaseModel):
     id: int = Field(..., alias='_id')
     polling_place_id: int
@@ -80,11 +88,13 @@ class KeyPair(BaseModel):
     g_private_key_pem: str
     g_public_key_pem: str
 
+
 class VotingData(BaseModel):
     polling_places: List[PollingPlace] = []
     parties: List[Party] = []
     key_pairs: List[KeyPair] = []
     texts: Texts
+
 
 class Vote(BaseModel):
     token: str
@@ -92,9 +102,11 @@ class Vote(BaseModel):
     election_id: str
     candidate_ids: List[int] = []
 
+
 class VoteEncrypted(BaseModel):
     encrypted_message: str
     encrypted_object: str
+
 
 class VotesEncrypted(BaseModel):
     polling_place_id: int
@@ -112,6 +124,7 @@ class VotesEncrypted(BaseModel):
                 ]
             }
         }
+
 
 class VoteToBeEncrypted(BaseModel):
     vote: Vote
@@ -136,6 +149,7 @@ class VoteToBeEncrypted(BaseModel):
             }
         }
 
+
 class VoteToBeDecrypted(BaseModel):
     encrypted_vote: VoteEncrypted
     private_key_pem: str
@@ -153,8 +167,36 @@ class VoteToBeDecrypted(BaseModel):
             }
         }
 
+
 class VoteDecrypted(BaseModel):
     vote: Vote
+
+class StatisticsPerPartyRequest(BaseModel):
+    party: Optional[str] = None
+    class Config:
+        schema_extra = {
+            "example": {
+                "party": "SME RODINA"
+            }
+        }
+
+class StatisticsPerLocalityRequest(BaseModel):
+    filter_by: str
+    filter_value: Optional[str] = None
+
+    @validator('filter_by')
+    def group_by_only_plausible_localities(cls, v):
+        possible_values = ['region_name', 'county_name', 'municipality_name', 'administrative_area_name']
+        if v not in possible_values:
+            raise ValueError('Invalid filter by value. Possible valuies: ' + ', '.join(possible_values))
+        return v
+    class Config:
+        schema_extra = {
+            "example": {
+                "filter_by": "region_name",
+                "filter_value" : "Prešovský kraj"
+            }
+        }
 
 
 # Statistics

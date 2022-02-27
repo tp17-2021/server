@@ -12,3 +12,10 @@ sysctl -w vm.max_map_count=262144
 
 Na macu sa to da nastavit priamo v Docker Desktop aplikacia v nastaveniach -> zdroje -> advanced, dal som 8GB
 
+
+100k records is arround 22MB
+1M had 335MB (1M in mongo has 50MB) - syncing of 1M took 5minutes
+-> 4M appr. 1.5GB
+
+Benchmark on mongo vs elastic performance
+https://blog.quarkslab.com/mongodb-vs-elasticsearch-the-quest-of-the-holy-performances.html
