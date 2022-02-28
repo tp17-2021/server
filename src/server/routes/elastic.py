@@ -4,6 +4,7 @@ import base64
 import string
 import random
 import math
+from collections import OrderedDict
 
 import random
 import string
@@ -398,6 +399,7 @@ def calcualte_winning_parties_and_seats(transformed_data):
     votes_in_winning_parties = 0
     total_votes = 0
     accepted_parties = 0
+    seats_taken = 0
 
     for party in transformed_data:
         total_votes += party["doc_count"]
@@ -414,14 +416,38 @@ def calcualte_winning_parties_and_seats(transformed_data):
         for party in transformed_data:
             party["in_parliament"] = True
 
+    # Store diiference between float number of seats based on relative percentage and floored number
+    floored_seats_per_party = {}
+
     # Calculate relative vote percentage from this set of parties and calculate result seats for each party
     for party in transformed_data:
         party["relative_percentage"] = round(
             party["doc_count"] / votes_in_winning_parties * 100, 4)
-        party["seats"] = math.floor(
-            c.PARLIAMENTS_SEATS_TO_SPLIT / 100 * party["relative_percentage"])
 
-    # TODO skrutinio - zapametat si zvysok po floornuti, potom ich pre vsetky strany sortnut a postupne nepridelene sedacky dat tym stranam
+        seats = c.PARLIAMENTS_SEATS_TO_SPLIT / 100 * party["relative_percentage"]
+        party["seats"] = math.floor(seats)
+        seats_taken += party["seats"]
+        floored_seats_per_party[party["name"]] = float(seats - party["seats"])
+
+    # Not all seats were taken. Remaining seats will be split to the parties with highest remainders after flooring.
+    if(seats_taken < c.PARLIAMENTS_SEATS_TO_SPLIT):
+        seats_left = c.PARLIAMENTS_SEATS_TO_SPLIT - seats_taken
+        ordered_floored_seats_per_party = OrderedDict(sorted(floored_seats_per_party.items(), key=lambda x: x[1], reverse=True))
+
+        # crete list of parties that will have one more seat due to scrutinium
+        current_seat = 0
+        parties_with_added_seat = []
+        for party in ordered_floored_seats_per_party:
+            if (current_seat == seats_left):
+                break
+            parties_with_added_seat.append(party)
+            current_seat += 1
+
+        # add additional seat and flag
+        for party in transformed_data:
+            if party["name"] in parties_with_added_seat:
+                party["seats"] += 1
+                party["additional_seat"] = True
 
     return transformed_data
 
