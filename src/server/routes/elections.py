@@ -73,20 +73,22 @@ async def validate_party_and_candidates(vote):
     for party in parties:
         if party["_id"] == vote["party_id"]:
             candidate_match_count = 0
-            for candidate in party["candidates"]:
-                if candidate["_id"] in candidate_ids:
+            for candidate in candidate_ids:
+                if candidate in [i["_id"] for i in party["candidates"]]:
                     candidate_match_count += 1
 
-            if candidate_match_count == len(candidate_ids):
-                content = {
-                    "status": "success",
-                    "message": "Parties with candidates were successfully validated",
-                }
-                return content
+                else:
+                    err_msg = f'candidate |{candidate}| is not in party |{party["_id"]}|'
+
+                    content = {
+                        "status": "failure",
+                        "message": "Invalid candidates ids - " + err_msg,
+                    }
+                    return content
 
             content = {
-                "status": "failure",
-                "message": "Invalid candidates ids",
+                "status": "success",
+                "message": "Parties with candidates were successfully validated",
             }
             return content
 
@@ -146,17 +148,20 @@ async def validate_decryption(decrypted_vote, polling_place_id, max_id, _id):
     if decrypted_vote is None:
         content = {
             "status": "failure",
-            "message": "Invalid decryption",
+            "message": "Invalid decryption - decrypted vote is none",
         }
         return content
     try:
         decrypted_vote["polling_place_id"] = polling_place_id
         decrypted_vote["_id"] = max_id + 1 + _id
-    except:
+    except Exception as e:
         content = {
             "status": "failure",
-            "message": "Invalid decryption",
+            "message": "Invalid decryption - unspecified",
         }
+
+        print('--------------', e)
+
         return content
     content = {
         "status": "success",
