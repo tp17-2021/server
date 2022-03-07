@@ -47,6 +47,7 @@ class Party(BaseModel):
     abbreviation: str
     image: str
     image_bytes: str
+    color: str
     candidates: List[Candidate] = []
 
 

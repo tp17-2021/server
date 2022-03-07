@@ -208,6 +208,7 @@ async def seed_votes(number_of_votes: int):
 
     polling_places = [polling_place async for polling_place in DB.polling_places.find()]
     parties = await get_parties_with_candidates()
+    parties_probabilities = [ random.randint(10, 100) for _ in parties ]
 
     votes_to_be_inserted = []
     for _id in range(number_of_votes):
@@ -229,7 +230,7 @@ async def seed_votes(number_of_votes: int):
         selected_token = await generate_token()
         vote["token"] = selected_token
 
-        selected_party = random.choice(parties)
+        selected_party = random.choices(parties, parties_probabilities, k=1)[0]
         vote["party_id"] = selected_party["_id"]
 
         vote["election_id"] = config.ELECTION_ID

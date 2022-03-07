@@ -22,6 +22,7 @@ from src.server import config
 from src.server import schemas
 from src.server.database import DB, get_database
 from src.server.database import get_parties_with_candidates, get_max_id
+from src.server.routes.elastic import get_parties_and_candidates_lookup
 import asyncio
 
 from elasticsearch import Elasticsearch, helpers
@@ -248,6 +249,9 @@ async def vote(request: schemas.VotesEncrypted):
 
 @router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
 async def get_voting_data():
+    """
+    Downlaod voting data json using command curl http://localhost:8222/elections/voting-data > config.json
+    """
     DB = await get_database()
 
     polling_places = [polling_place async for polling_place in DB.polling_places.find()]
@@ -257,9 +261,9 @@ async def get_voting_data():
     
     # -----
     # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
-    polling_places = polling_places[:2]
-    parties_with_candidates = parties_with_candidates[:2]
-    key_pairs = key_pairs[:2]
+    # polling_places = polling_places[:2]
+    # parties_with_candidates = parties_with_candidates[:2]
+    # key_pairs = key_pairs[:2]
     # -----
     
     # multilingual text for VT application

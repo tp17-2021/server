@@ -353,7 +353,7 @@ async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
             "agg_by_party": {
                 "terms": {
                     "size": 100,
-                    "field": "party.name"
+                    "field": "party.id"
                 }
             }
         }
@@ -375,7 +375,7 @@ async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
     total_votes = await DB.votes.count_documents({})
     for party in response['aggregations']['agg_by_party']['buckets']:
         transformed_data.append({
-            "name": party["key"],
+            "id": party["key"],
             "doc_count": party["doc_count"],
             "percentage": round(party["doc_count"] / total_votes * 100, 4)
         })
@@ -421,13 +421,22 @@ def calcualte_winning_parties_and_seats(transformed_data):
 
     # Calculate relative vote percentage from this set of parties and calculate result seats for each party
     for party in transformed_data:
+        if(not party["in_parliament"]):
+            continue
+
         party["relative_percentage"] = round(
             party["doc_count"] / votes_in_winning_parties * 100, 4)
 
-        seats = c.PARLIAMENTS_SEATS_TO_SPLIT / 100 * party["relative_percentage"]
+            # Votes = 1M
+            # Smer = 100k
+            # Smer 10%
+            # 150 / 100 * 10
+            # 100k / 150 = RN 
+
+        seats = (c.PARLIAMENTS_SEATS_TO_SPLIT / 100) * party["relative_percentage"]
         party["seats"] = math.floor(seats)
         seats_taken += party["seats"]
-        floored_seats_per_party[party["name"]] = float(seats - party["seats"])
+        floored_seats_per_party[party["id"]] = float(seats - party["seats"])
 
     # Not all seats were taken. Remaining seats will be split to the parties with highest remainders after flooring.
     if(seats_taken < c.PARLIAMENTS_SEATS_TO_SPLIT):
@@ -445,7 +454,7 @@ def calcualte_winning_parties_and_seats(transformed_data):
 
         # add additional seat and flag
         for party in transformed_data:
-            if party["name"] in parties_with_added_seat:
+            if party["id"] in parties_with_added_seat:
                 party["seats"] += 1
                 party["additional_seat"] = True
 
@@ -462,7 +471,7 @@ async def get_parties_with_candidates_results(request: schemas.StatisticsPerPart
             "agg_by_party": {
                 "terms": {
                     "size": 100,
-                    "field": "party.name"
+                    "field": "party.id"
                 },
                 "aggs": {
                     "agg_by_candidate": {
@@ -473,7 +482,7 @@ async def get_parties_with_candidates_results(request: schemas.StatisticsPerPart
                             "candidates": {
                                 "terms": {
                                     "size": c.ELASTIC_RESULTS_LIMIT,
-                                    "field": "candidates.fullname"
+                                    "field": "candidates.id"
                                 }
                             }
                         }
@@ -503,13 +512,13 @@ async def get_parties_with_candidates_results(request: schemas.StatisticsPerPart
 
         for candidate in party["agg_by_candidate"]["candidates"]["buckets"]:
             candidates.append({
-                "name": candidate["key"],
+                "id": candidate["key"],
                 "doc_count": candidate["doc_count"],
                 "percentage": round(candidate["doc_count"] / total_votes * 100, 4)
             })
 
         transformed_data.append({
-            "name": party["key"],
+            "id": party["key"],
             "doc_count": party["doc_count"],
             "candidates": candidates,
             "percentage": round(party["doc_count"] / total_votes * 100, 4)
@@ -637,7 +646,7 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
                     "agg_by_party": {
                         "terms": {
                             "size": c.ELASTIC_RESULTS_LIMIT,
-                            "field": "party.name"
+                            "field": "party.id"
                         },
                         "aggs": {
                             "agg_by_candidate": {
@@ -690,7 +699,7 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
                 })
 
             parties.append({
-                "name": party["key"],
+                "id": party["key"],
                 "doc_count": party["doc_count"],
                 "candidates": candidates,
                 "percentage": round(party_votes / locality_votes_total * 100, 4)
@@ -714,8 +723,27 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
 # TODO pridat percentualnu ucast
 # TODO okontrolovat get max id, nechat nech sa id generuje
 
+async def get_parties_and_candidates_lookup():
+    lookup = {
+        "parties": {},
+        "candidates": {}
+    }
+    data = await get_parties_with_candidates()
 
-@ router.post("/elections-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+    for party in data:
+
+        party_without_candidates = party.copy()
+        party_without_candidates.pop("candidates")
+        # pprint(party_without_candidates)
+        lookup["parties"][party["_id"]] = party_without_candidates
+
+        for candidate in party["candidates"]:
+            lookup["candidates"][candidate["_id"]] = candidate
+
+    return lookup
+
+
+@ router.get("/elections-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_elections_status():
     DB = await get_database()
 
@@ -730,7 +758,7 @@ async def get_elections_status():
     votes_synchronized_in_elastic = response['count']
     content = {
         "status": "success",
-        "message": {
+        "data": {
             "registered_voters": registered_voters,
             "total_votes": votes_total_in_db,
             "participation": round(

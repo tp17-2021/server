@@ -1,6 +1,6 @@
+# -*- coding: utf-8 -*-
 import pandas as pd
 import json
-
 
 def saveJson(obj, path):
     if(".json" not in path):
@@ -67,7 +67,8 @@ def main():
         "Názov politického subjektu": "name",
         "Oficiálna skratka politického subjektu": "abbreviation",
         "Poznámka": "note",
-        "Počet kandidátov": "candidates_count"
+        "Počet kandidátov": "candidates_count",
+        "Farba": "color"
     })
 
     df = df.drop(['candidates_count', 'note'], axis=1)
