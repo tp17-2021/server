@@ -28,7 +28,7 @@ services:
     image: mongo
     # container_name: server-db
     ports:
-      - 8223:27017
+      - 8224:27017
     restart: unless-stopped
     # use server-db-data directory as volume to store data
     volumes:
