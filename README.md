@@ -20,18 +20,23 @@ Unit test implemented inside repository can be run by building the containers, o
 
 Docker-compose file for testing purpouse is available. Unit/integration tests can be run inside Docker containers. This is the magic:
 ```
-docker-compose -f docker-compose.test.yml up --build --exit-code-from server --force-recreate
+docker-compose -p test-server -f docker-compose.test.yml up --build --exit-code-from server --renew-anon-volumes 
 ```
 
 Flags description:
+-p                  - preped prefix to container names
 -f                  - docker-compose yml file
 --build             - build images if changed sources
 --exit-code-from    - get overall exit code from specified container
 --force-recreate    - recreate all containers
+--renew-anon-volumes - delete anonym volumens
 
 _The output of this command is quite... confusing. Output of every container is combined, so not only test results are visible, but also log junk from database. At least, every line prefixes with container name, so grep on Linux can filter it. Although, ignoring otuput from unrelevant containers still remains to be solved smartly._
 
-
+To stop the contaienrs use command:
+```
+docker-compose -f docker-compose.test.yml down
+```
 ## API markdown generation
 
 We have created a way to convert open API swagger docs to the readme file and merge it with the original README file to provide all important info about endpoints and their schemas using [widdershins](https://mermade.github.io/widdershins/ConvertingFilesBasicCLI.html) library.
