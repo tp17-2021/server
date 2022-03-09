@@ -225,6 +225,7 @@ async def setup_elastic_votes_index():
 # TODO insertovanie cisla id pre vote nech neni od 1 ale object random id
 # TODO check if inserted correctly
 
+
 @router.post("/synchronize-votes-es", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def synchronize_votes_ES(number=c.ES_SYNCHRONIZATION_BATCH_SIZE):
     """
@@ -354,6 +355,21 @@ async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
                 "terms": {
                     "size": 100,
                     "field": "party.id"
+                },
+                "aggs": {
+                    "agg_by_candidate": {
+                        "nested": {
+                            "path": "candidates"
+                        },
+                        "aggs": {
+                            "candidates": {
+                                "terms": {
+                                    "size": c.ELASTIC_RESULTS_LIMIT,
+                                    "field": "candidates.id"
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -374,9 +390,19 @@ async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
     transformed_data = []
     total_votes = await DB.votes.count_documents({})
     for party in response['aggregations']['agg_by_party']['buckets']:
+        candidates = []
+
+        for candidate in party["agg_by_candidate"]["candidates"]["buckets"]:
+            candidates.append({
+                "id": candidate["key"],
+                "doc_count": candidate["doc_count"],
+                "percentage": round(candidate["doc_count"] / total_votes * 100, 4)
+            })
+
         transformed_data.append({
             "id": party["key"],
             "doc_count": party["doc_count"],
+            "candidates": candidates,
             "percentage": round(party["doc_count"] / total_votes * 100, 4)
         })
 
@@ -384,6 +410,11 @@ async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
     if (not request.party):
         transformed_data = calcualte_winning_parties_and_seats(
             transformed_data)
+
+    # remove candidates from response, they are no longer needed (needed only for seats calculation)
+    for party in transformed_data:
+        if "candidates" in party:
+            del party["candidates"]
 
     return transformed_data
 
@@ -419,6 +450,11 @@ def calcualte_winning_parties_and_seats(transformed_data):
     # Store diiference between float number of seats based on relative percentage and floored number
     floored_seats_per_party = {}
 
+
+    # Republic number represents votes needed for one seat
+    republic_number = math.floor(votes_in_winning_parties / (c.PARLIAMENTS_SEATS_TO_SPLIT + 1))
+
+
     # Calculate relative vote percentage from this set of parties and calculate result seats for each party
     for party in transformed_data:
         if(not party["in_parliament"]):
@@ -427,19 +463,21 @@ def calcualte_winning_parties_and_seats(transformed_data):
         party["relative_percentage"] = round(
             party["doc_count"] / votes_in_winning_parties * 100, 4)
 
-            # Votes = 1M
-            # Smer = 100k
-            # Smer 10%
-            # 150 / 100 * 10
-            # 100k / 150 = RN 
-
-        seats = (c.PARLIAMENTS_SEATS_TO_SPLIT / 100) * party["relative_percentage"]
-        party["seats"] = math.floor(seats)
+        party["seats"] = party["doc_count"] // republic_number
         seats_taken += party["seats"]
-        floored_seats_per_party[party["id"]] = float(seats - party["seats"])
+
+        # Edge case when 151 seats were allocated hack
+        if(seats_taken == (c.PARLIAMENTS_SEATS_TO_SPLIT + 1)):
+            party["seats"] -= 1
+            seats_taken -= 1
+
+        floored_seats_per_party[party["id"]] = party["doc_count"] % republic_number
+
+    ordered_floored_seats_per_party = OrderedDict(sorted(floored_seats_per_party.items(), key=lambda x: x[1], reverse=True))
 
     # Not all seats were taken. Remaining seats will be split to the parties with highest remainders after flooring.
-    if(seats_taken < c.PARLIAMENTS_SEATS_TO_SPLIT):
+    if(seats_taken <= c.PARLIAMENTS_SEATS_TO_SPLIT):
+
         seats_left = c.PARLIAMENTS_SEATS_TO_SPLIT - seats_taken
         ordered_floored_seats_per_party = OrderedDict(sorted(floored_seats_per_party.items(), key=lambda x: x[1], reverse=True))
 
@@ -447,7 +485,7 @@ def calcualte_winning_parties_and_seats(transformed_data):
         current_seat = 0
         parties_with_added_seat = []
         for party in ordered_floored_seats_per_party:
-            if (current_seat == seats_left):
+            if current_seat == seats_left:
                 break
             parties_with_added_seat.append(party)
             current_seat += 1
@@ -458,6 +496,31 @@ def calcualte_winning_parties_and_seats(transformed_data):
                 party["seats"] += 1
                 party["additional_seat"] = True
 
+    # zistit kolko sedadiel nemaju ako obsadit
+    unfillable_seats = 0
+    parties_eligible_for_reamining_seats = []
+    for party in transformed_data:
+        if party["in_parliament"]:
+            if len(party['candidates']) < party['seats']:
+                unfillable_seats += (party['seats'] - len(party['candidates']))
+                party['original_seats'] = party['seats']
+                party['seats'] = len(party['candidates'])
+            else:
+                parties_eligible_for_reamining_seats.append(party["id"])
+
+    # mat zoznam stran ktore maju dost kandidatov na obsadenie
+
+    if( unfillable_seats > 0):
+        while unfillable_seats > 0:
+            for party in transformed_data:
+                if party["in_parliament"]:
+                    if party['id'] in parties_eligible_for_reamining_seats:
+                        party['seats'] += 1
+                        unfillable_seats -= 1
+
+                        if unfillable_seats <= 0:
+                            break
+                        
     return transformed_data
 
 

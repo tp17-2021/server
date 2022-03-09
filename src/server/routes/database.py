@@ -208,7 +208,8 @@ async def seed_votes(number_of_votes: int):
 
     polling_places = [polling_place async for polling_place in DB.polling_places.find()]
     parties = await get_parties_with_candidates()
-    parties_probabilities = [ random.randint(10, 100) for _ in parties ]
+    # parties_probabilities = [ random.randint(10, 100) for _ in parties ]
+    parties_probabilities = [28, 30, 120, 22, 72, 26, 17, 81, 58, 28, 48, 200, 73, 15, 69, 49, 27, 86, 39, 13, 150, 73, 23, 80, 43]
 
     votes_to_be_inserted = []
     for _id in range(number_of_votes):
