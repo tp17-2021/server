@@ -450,10 +450,9 @@ def calcualte_winning_parties_and_seats(transformed_data):
     # Store diiference between float number of seats based on relative percentage and floored number
     floored_seats_per_party = {}
 
-
     # Republic number represents votes needed for one seat
-    republic_number = math.floor(votes_in_winning_parties / (c.PARLIAMENTS_SEATS_TO_SPLIT + 1))
-
+    republic_number = math.floor(
+        votes_in_winning_parties / (c.PARLIAMENTS_SEATS_TO_SPLIT + 1))
 
     # Calculate relative vote percentage from this set of parties and calculate result seats for each party
     for party in transformed_data:
@@ -471,15 +470,18 @@ def calcualte_winning_parties_and_seats(transformed_data):
             party["seats"] -= 1
             seats_taken -= 1
 
-        floored_seats_per_party[party["id"]] = party["doc_count"] % republic_number
+        floored_seats_per_party[party["id"]
+                                ] = party["doc_count"] % republic_number
 
-    ordered_floored_seats_per_party = OrderedDict(sorted(floored_seats_per_party.items(), key=lambda x: x[1], reverse=True))
+    ordered_floored_seats_per_party = OrderedDict(
+        sorted(floored_seats_per_party.items(), key=lambda x: x[1], reverse=True))
 
     # Not all seats were taken. Remaining seats will be split to the parties with highest remainders after flooring.
     if(seats_taken <= c.PARLIAMENTS_SEATS_TO_SPLIT):
 
         seats_left = c.PARLIAMENTS_SEATS_TO_SPLIT - seats_taken
-        ordered_floored_seats_per_party = OrderedDict(sorted(floored_seats_per_party.items(), key=lambda x: x[1], reverse=True))
+        ordered_floored_seats_per_party = OrderedDict(
+            sorted(floored_seats_per_party.items(), key=lambda x: x[1], reverse=True))
 
         # crete list of parties that will have one more seat due to scrutinium
         current_seat = 0
@@ -496,7 +498,7 @@ def calcualte_winning_parties_and_seats(transformed_data):
                 party["seats"] += 1
                 party["additional_seat"] = True
 
-    # zistit kolko sedadiel nemaju ako obsadit
+    # Find number of seats that cannot be taken
     unfillable_seats = 0
     parties_eligible_for_reamining_seats = []
     for party in transformed_data:
@@ -508,9 +510,8 @@ def calcualte_winning_parties_and_seats(transformed_data):
             else:
                 parties_eligible_for_reamining_seats.append(party["id"])
 
-    # mat zoznam stran ktore maju dost kandidatov na obsadenie
-
-    if( unfillable_seats > 0):
+    # Give free seats to parties one by one in order
+    if(unfillable_seats > 0):
         while unfillable_seats > 0:
             for party in transformed_data:
                 if party["in_parliament"]:
@@ -520,7 +521,13 @@ def calcualte_winning_parties_and_seats(transformed_data):
 
                         if unfillable_seats <= 0:
                             break
-                        
+
+
+    # Set flag for candidates in parliament
+    for party in transformed_data:
+        for i, candidate in enumerate(party['candidates']):
+            candidate['in_parliament'] = True if 'seats' in party and i < party['seats'] else False
+                
     return transformed_data
 
 
@@ -785,6 +792,7 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
 
 # TODO pridat percentualnu ucast
 # TODO okontrolovat get max id, nechat nech sa id generuje
+
 
 async def get_parties_and_candidates_lookup():
     lookup = {
