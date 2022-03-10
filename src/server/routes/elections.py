@@ -304,12 +304,11 @@ async def get_voting_data():
 # -----------------------------------------------------------------------------
 from time import gmtime, strftime
 from mdutils.mdutils import MdUtils
+import re
 
 @router.get("/zapisnica", status_code=status.HTTP_200_OK)
 async def get_zapisnica():
     polling_place_id = 0
-    date = strftime("%d.%m.%Y %H:%M:%S", gmtime())
-    print(date)
 
     DB = await get_database()
 
@@ -321,6 +320,7 @@ async def get_zapisnica():
             parties[party["_id"]] = party["name"]
             for candidate in party["candidates"]:
                 candidates[candidate["_id"]] = candidate
+                
 
     polling_place = data["polling_places"][polling_place_id]
     # print(polling_place)
@@ -337,18 +337,54 @@ async def get_zapisnica():
     voters_percentage = round((participated_voters_count / registered_voters_count) * 100, 2)
     print(voters_percentage)
 
-    mdFile = MdUtils(file_name="zapisnica.md", title="XXX")
+    date_and_time = strftime("%d.%m.%Y %H:%M:%S", gmtime())
+    mdFile = MdUtils(file_name="zapisnica.md", title=f"Zápisnica {date_and_time}")
 
     # Počet získaných hlasov pre každú politickú stranu alebo hnutie
-    mdFile.new_header(level=1, title='XXX')
+    mdFile.new_header(level=1, title="TODO REMOVE")
+ 
     # mdFile.new_header(level=2, title="Počet získaných hlasov pre každú politickú stranu alebo koalíciu")
     # mdFile.new_line()
 
 
-    list_of_strings = [
-        "Číslo a názov politickej strany alebo koalície",
-        "Počet získaných hlasov",
-        "Podiel získaných hlasov v %"
+    # mdFile.new_line("This is an inline code which contains bold and italics text and it is centered",
+    #             bold_italics_code='cib', align='center')
+
+
+    
+
+    mdFile.new_header(level=2, title="Tabuľka volebných kódov")
+
+    headers = [
+        "Kraj",
+        "Okres",
+        "Obec",
+        "Okrsok"
+    ]
+
+    headers.extend([
+        str(polling_place["region_code"]),
+        str(polling_place["county_code"]),
+        str(polling_place["municipality_code"]),
+        str(polling_place["polling_place_number"])  
+    ])
+
+    mdFile.new_line()
+    mdFile.new_table(columns=4, rows=2, text=headers, text_align='center')
+
+    mdFile.new_header(level=2, title="Tabuľka získaných hlasov pre každú politickú stranu alebo koalíciu")
+
+    # headers = [
+    #     "Číslo a názov politickej strany alebo koalície",
+    #     "Počet získaných hlasov",
+    #     "Podiel získaných hlasov v %"
+    # ]
+
+    headers = [
+        "Číslo",
+        "Názov",
+        "Počet hlasov",
+        "Podiel hlasov v %"
     ]
 
     pipeline = [
@@ -373,16 +409,15 @@ async def get_zapisnica():
         party_votes_percentage = round((party_votes_count / registered_voters_count) * 100, 2)
         # print(party_number, party_name, party_votes_count, party_votes_percentage)
 
-        list_of_strings.extend([
-            f"{party_number} {party_name}",
+        headers.extend([
+            str(party_number),
+            str(party_name),
             str(party_votes_count),
             str(party_votes_percentage)
         ])
 
-
     mdFile.new_line()
-    mdFile.new_table(columns=3, rows=len(parties)+1, text=list_of_strings, text_align='left')
-
+    mdFile.new_table(columns=4, rows=len(parties)+1, text=headers, text_align='left')
 
     pipeline = [
         {"$unwind": "$candidate_ids"},
@@ -412,8 +447,8 @@ async def get_zapisnica():
         else:
             party_names[party_name].append(candidate)
     
-
-
+    mdFile.new_header(level=2, title="Zoznam tabuliek získaných hlasov pre každého kandidáta vybranej politickej strany alebo koalície")
+    
     # Počet získaných hlasov pre každého kandidáta
     for party_name in party_names:
         candidates = party_names[party_name]
@@ -422,9 +457,11 @@ async def get_zapisnica():
         # print(party_number)
         # print(party_name)
         # mdFile.new_header(level=2, title="Číslo a názov politickej strany alebo koalície")
-        mdFile.new_header(level=2, title=f"{party_number} {party_name}")
+        mdFile.new_header(level=3, title=party_name)
 
         list_of_strings = [
+            "Poradové číslo",
+            "Meno, priezvisko a titul kandidáta",
             "Počet získaných hlasov",
             "Podiel získaných hlasov v %"
         ]
@@ -432,13 +469,28 @@ async def get_zapisnica():
         for candidate in candidates:
             # print(candidate)
 
+            candidate_name = f"{candidate['first_name']} {candidate['last_name']}"
+            if len(candidate["degrees_before"]):
+                candidate_name += f", {candidate['degrees_before']}"
+
             list_of_strings.extend([
+                str(candidate["order"]),
+                candidate_name,
                 str(candidate["votes_count"]),
                 str(candidate["votes_percentage"]),
             ])
 
         mdFile.new_line()
-        mdFile.new_table(columns=2, rows=len(candidates)+1, text=list_of_strings, text_align='left')
+        mdFile.new_table(columns=4, rows=len(candidates)+1, text=list_of_strings, text_align='left')
         break
 
     mdFile.create_md_file()
+
+
+    with open("zapisnica.md", "r") as file:
+        text = file.read()
+        text = re.sub(r"# TODO REMOVE", "", text)
+        text = re.sub(r"\| :--- \| :--- \| :--- \| :--- \|", "| :---: | :--- | :---: | :---: |", text)
+
+    with open("zapisnica.md", "w") as file:
+        file.write(text)
