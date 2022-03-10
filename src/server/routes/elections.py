@@ -3,6 +3,8 @@ import glob
 import base64
 import string
 import random
+from urllib import response
+from xml.dom.expatbuilder import CDATA_SECTION_NODE
 from pytest import yield_fixture
 
 from electiersa import electiersa
@@ -298,3 +300,145 @@ async def get_voting_data():
         "texts": texts
     }
     return content
+
+# -----------------------------------------------------------------------------
+from time import gmtime, strftime
+from mdutils.mdutils import MdUtils
+
+@router.get("/zapisnica", status_code=status.HTTP_200_OK)
+async def get_zapisnica():
+    polling_place_id = 0
+    date = strftime("%d.%m.%Y %H:%M:%S", gmtime())
+    print(date)
+
+    DB = await get_database()
+
+    parties = {}
+    candidates = {}
+    with open("src/server/routes/voting-data") as file:
+        data = json.load(file)
+        for party in data["parties"]:
+            parties[party["_id"]] = party["name"]
+            for candidate in party["candidates"]:
+                candidates[candidate["_id"]] = candidate
+
+    polling_place = data["polling_places"][polling_place_id]
+    # print(polling_place)
+
+    # Počer voličov zapísaných v zozname voličov
+    registered_voters_count = polling_place["registered_voters_count"]
+    print(registered_voters_count)
+
+    # Počet voličov, ktorý sa zúčastnili na hlasovaní
+    participated_voters_count = await DB.votes.count_documents({})
+    print(participated_voters_count)
+
+    # Účasť voličov vo voľbách v %
+    voters_percentage = round((participated_voters_count / registered_voters_count) * 100, 2)
+    print(voters_percentage)
+
+    mdFile = MdUtils(file_name="zapisnica.md", title="XXX")
+
+    # Počet získaných hlasov pre každú politickú stranu alebo hnutie
+    mdFile.new_header(level=1, title='XXX')
+    # mdFile.new_header(level=2, title="Počet získaných hlasov pre každú politickú stranu alebo koalíciu")
+    # mdFile.new_line()
+
+
+    list_of_strings = [
+        "Číslo a názov politickej strany alebo koalície",
+        "Počet získaných hlasov",
+        "Podiel získaných hlasov v %"
+    ]
+
+    pipeline = [
+        {"$group" : {"_id":"$party_id", "count":{"$sum":1}}},
+        {"$sort":{"_id":1}}
+    ]
+
+    voted_parties = {}
+    results = [result async for result in DB.votes.aggregate(pipeline)]
+    for result in results:
+        voted_parties[result["_id"]] = result["count"]
+
+    print(len(parties))
+    for party_id in parties:
+        party_name = parties[party_id]
+        party_number = party_id+1
+        if party_id in voted_parties:
+            party_votes_count = voted_parties[party_id]
+        else:
+            party_votes_count = 0
+
+        party_votes_percentage = round((party_votes_count / registered_voters_count) * 100, 2)
+        # print(party_number, party_name, party_votes_count, party_votes_percentage)
+
+        list_of_strings.extend([
+            f"{party_number} {party_name}",
+            str(party_votes_count),
+            str(party_votes_percentage)
+        ])
+
+
+    mdFile.new_line()
+    mdFile.new_table(columns=3, rows=len(parties)+1, text=list_of_strings, text_align='left')
+
+
+    pipeline = [
+        {"$unwind": "$candidate_ids"},
+        {"$group" : {"_id":"$candidate_ids", "count":{"$sum":1}}}
+    ]
+
+    voted_candidates = {}
+    results = [result async for result in DB.votes.aggregate(pipeline)]
+    for result in results:
+        voted_candidates[result["_id"]] = result["count"]
+
+    party_names = {}
+    for candidate_id in candidates:
+        candidate = candidates[candidate_id]
+
+        if candidate_id in voted_candidates:
+            candidate["votes_count"] = voted_candidates[candidate_id]
+        else:
+            candidate["votes_count"] = 0
+
+        candidate_votes_percentage = round((candidate["votes_count"] / registered_voters_count) * 100, 2)
+        candidate["votes_percentage"] = candidate_votes_percentage
+
+        party_name = parties[candidates[candidate_id]["party_number"]-1]
+        if party_name not in party_names:
+            party_names[party_name] = [candidate]
+        else:
+            party_names[party_name].append(candidate)
+    
+
+
+    # Počet získaných hlasov pre každého kandidáta
+    for party_name in party_names:
+        candidates = party_names[party_name]
+        party_number = candidates[0]["party_number"]
+
+        # print(party_number)
+        # print(party_name)
+        # mdFile.new_header(level=2, title="Číslo a názov politickej strany alebo koalície")
+        mdFile.new_header(level=2, title=f"{party_number} {party_name}")
+
+        list_of_strings = [
+            "Počet získaných hlasov",
+            "Podiel získaných hlasov v %"
+        ]
+
+        for candidate in candidates:
+            # print(candidate)
+
+            list_of_strings.extend([
+                str(candidate["votes_count"]),
+                str(candidate["votes_percentage"]),
+            ])
+
+        mdFile.new_line()
+        mdFile.new_table(columns=2, rows=len(candidates)+1, text=list_of_strings, text_align='left')
+        break
+
+    mdFile.create_md_file()
