@@ -57,15 +57,11 @@ def retype_object_id_to_str(data):
 @router.get('/final')
 async def statistics_final():
     DB  = await get_database()
-    
-    votes_n = len(list(DB.votes.find({})))
-    
 
-    offices_open_n = 0 #todo function
-    offices_n = len(list(DB.election_offices.find({})))
-    offices_closed_n = offices_n - offices_open_n
+    votes_n = await DB.votes.count_documents({})
+    offices_n = await DB.election_offices.count_documents({})
 
-    parties_votes_results = list(DB.votes.aggregate([
+    parties_votes_results = [result async for result in DB.votes.aggregate([
         {
             '$group': {
                 '_id': '$party_id',
@@ -89,7 +85,7 @@ async def statistics_final():
                 'path': '$party'
             }
         }
-    ]))
+    ])]
 
     party_id_map = {}
     for party in parties_votes_results:
@@ -97,7 +93,7 @@ async def statistics_final():
         party_id_map[party["_id"]] = party
 
 
-    candidates_votes_results = list(DB.votes.aggregate([
+    candidates_votes_results = [result async for result in DB.votes.aggregate([
         {
             '$unwind': {
                 'path': '$candidates'
@@ -126,7 +122,7 @@ async def statistics_final():
                 'path': '$candidate'
             }
         }
-    ]))
+    ])]
 
     for candidate_vote in candidates_votes_results:
         party_id = candidate_vote["candidate"]["party_id"]
@@ -147,7 +143,6 @@ async def statistics_final():
 
     print("="*80)
 
-
     # TODO sort candidates by votes inside result 
 
     return {
@@ -156,8 +151,6 @@ async def statistics_final():
         'statistics': {
             "votes": votes_n,
             "offices": offices_n,
-            "open_offices": offices_open_n,
-            "closed_offices": offices_closed_n,
             "parties_votes_results": retype_object_id_to_str(parties_votes_results[0]),
             "candidates_votes_results": retype_object_id_to_str(candidates_votes_results[0]),
             "overal_results": temporary_cut_result,
