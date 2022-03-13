@@ -15,6 +15,27 @@ After the build, you have two running services (MongoDB database and FastAPI ser
 
 To see all available endpoints of the server navigate to: ```http://localhost:8222/docs```
 
+## How to seed data and prepare Elastic search
+In API specification run endpoints in following order:
+- /database/import-data
+- /database/seed-votes (with number of votes to be seeded)
+- /elastic/setup-elastic-vote-index (Elastic nodes need to working, if not please chceck low memmory error described in section Elastci search VM max map count problem)
+- /elastic/synchronize-votes-es (Synchronize votes in batches)
+
+## Elastci search VM max map count problem
+The vm.max_map_count kernel setting must be set to at least 262144 for production use.
+
+Based on your operating system and method of docker isntallation use one of following methods:
+```
+docker-machine ssh
+sudo sysctl -w vm.max_map_count=262144
+
+wsl -d docker-desktop
+sysctl -w vm.max_map_count=262144
+```
+
+On mac while using Docker Desktop App suffice setting more memmory in application settings (resources -> advanced -> 8Gb will suffice)
+
 ## Testing inside docker
 Unit test implemented inside repository can be run by building the containers, opening CLI in the server container, and running the following command in the code directory:
 
