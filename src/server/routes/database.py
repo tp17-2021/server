@@ -21,7 +21,7 @@ from starlette.responses import JSONResponse
 # Server modules
 from src.server import config
 from src.server import schemas
-from src.server.database import get_database, get_parties_with_candidates
+from src.server.database import get_database, get_parties_with_candidates, get_max_id
 
 
 # Create FastAPI router
@@ -231,9 +231,10 @@ async def seed_votes(number_of_votes: int):
     parties_probabilities = [28, 30, 120, 22, 72, 26, 17, 81, 58, 28, 48, 200, 73, 15, 69, 49, 27, 86, 39, 13, 150, 73, 23, 80, 43]
 
     votes_to_be_inserted = []
+    max_id = await get_max_id("votes")
     for _id in range(number_of_votes):
         vote = {
-            # "_id": None,
+            "_id": None,
             "token": None,
             "party_id": None,
             "election_id": None,
@@ -242,7 +243,7 @@ async def seed_votes(number_of_votes: int):
         }
 
         # TODO toto tu je problem treba prediskutovat
-        # vote["_id"] = _id
+        vote["_id"] = max_id + 1 + _id
 
         selected_polling_place = random.choice(polling_places)
         vote["polling_place_id"] = selected_polling_place["_id"]

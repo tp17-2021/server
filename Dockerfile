@@ -2,7 +2,7 @@ FROM python:3.10-alpine as base
 
 WORKDIR /code
 
-RUN apk add -U g++ gcc git bash
+RUN apk add -U g++ gcc git bash curl
 
 COPY ./data ./data
 

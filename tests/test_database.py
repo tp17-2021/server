@@ -15,7 +15,7 @@ def connect_to_db():
     )
     db = CLIENT[os.environ["SERVER_DB_NAME"]]
     _ = str(db)
-    print(_)
+    # print(_)
     return db
 
 

@@ -12,6 +12,7 @@ services:
     restart: "no"
     depends_on:
       - server-db
+      - electie_test_es_01
     # export useful environment variables to the service
     environment:
       - SERVER_DB_HOST=server-db
@@ -24,15 +25,21 @@ services:
   server-db:
     # use existing mongo image from dockerhub
     image: mongo
+    #supress too verbose logs
+    # command: ["mongod", "--quiet"]
+    command:
+      - '--logpath'
+      - '/var/log/mongodb/mongod.log'
     # container_name: server-db
     restart: unless-stopped
     # export useful environment variables to the service's container
     environment:
       - PUID=1000
       - PGID=1000
-  
+
   electie_test_es_01:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    command: [ "elasticsearch", "-Elogger.level=ERROR" ]
     environment:
       - node.name=electie_test_es_01
       - cluster.name=es-docker-cluster
@@ -44,9 +51,10 @@ services:
       memlock:
         soft: -1
         hard: -1
-      
+
   electie_test_es_02:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    command: [ "elasticsearch", "-Elogger.level=ERROR" ]
     environment:
       - node.name=electie_test_es_02
       - cluster.name=es-docker-cluster
@@ -61,6 +69,7 @@ services:
 
   electie_test_es_03:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    command: [ "elasticsearch", "-Elogger.level=ERROR" ]
     environment:
       - node.name=electie_test_es_03
       - cluster.name=es-docker-cluster
