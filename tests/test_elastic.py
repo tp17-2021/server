@@ -70,6 +70,11 @@ async def test_seed_and_synchronize_elastic_vote():
     }
     number_of_votes_to_seed = 5
 
+    # Import data
+    response = client.post(
+        f"/database/import-data", headers=headers, json={})
+    assert response.status_code == 200
+
     # Reset ES ans setup index
     response = client.post(
         "/elastic/setup-elastic-vote-index", headers=headers, json={})
@@ -103,6 +108,7 @@ async def test_seed_and_synchronize_elastic_vote():
     assert votes_in_db_after_sync == votes_in_db + number_of_votes_to_seed
 
 
+@pytest.mark.run(after='test_seed_and_synchronize_elastic_vote')
 @pytest.mark.asyncio
 async def test_elestic_statistics():
     """
