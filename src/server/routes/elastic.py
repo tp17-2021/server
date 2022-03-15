@@ -37,7 +37,6 @@ router = APIRouter(
 
 # function for the cURL requests to Elastic search
 
-
 def elasticsearch_curl(uri='', method='get', json_data=''):
 
     uri = f"http://{os.environ['ELASTIC_HOST']}:{os.environ['ELASTIC_PORT']}{uri}"
@@ -454,6 +453,10 @@ def calcualte_winning_parties_and_seats(transformed_data):
     republic_number = math.floor(
         votes_in_winning_parties / (c.PARLIAMENTS_SEATS_TO_SPLIT + 1))
 
+    # If only few votes in db and republic number is 0, no seats can be given
+    if(republic_number == 0):
+        return transformed_data
+
     # Calculate relative vote percentage from this set of parties and calculate result seats for each party
     for party in transformed_data:
         if(not party["in_parliament"]):
@@ -821,13 +824,27 @@ async def get_elections_status():
     registered_voters = (await get_eligible_voters_per_locality())['']
     votes_total_in_db = await DB.votes.count_documents({})
     votes_synchronized_in_db = await DB.votes.count_documents({"synchronized": True})
-    # TODO uncomment
-    # response = elasticsearch_curl(
-    #     uri='/votes/_count',
-    #     method='get',
-    #     json_data=None
-    # )
-    # votes_synchronized_in_elastic = response['count']
+   
+    response = elasticsearch_curl(
+        uri='/votes/_refresh',
+        method='post',
+        json_data=None
+    )
+
+    response = elasticsearch_curl(
+        uri='/votes/_count',
+        method='get',
+        json_data=None
+    )
+
+    response = elasticsearch_curl(
+        uri='/votes/_count',
+        method='get',
+        json_data=None
+    )
+    print("="*100)
+    pprint(response)
+    votes_synchronized_in_elastic = response['count']
     content = {
         "status": "success",
         "data": {
@@ -836,7 +853,7 @@ async def get_elections_status():
             "participation": round(
                 votes_total_in_db / registered_voters * 100, 2),
             "votes_synchronized_in_db": votes_synchronized_in_db,
-            "votes_synchronized_in_elastic": 0 # TODO replace when ES functional for tests
+            "votes_synchronized_in_elastic": votes_synchronized_in_elastic
         }
     }
     return content

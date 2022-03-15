@@ -68,7 +68,7 @@ async def test_seed_and_synchronize_elastic_vote():
         "accept": "application/json",
         "Content-Type": "application/json",
     }
-    number_of_votes_to_seed = 5
+    number_of_votes_to_seed = 200 # minimal count is 151 for republic number to be non zero
 
     # Import data
     response = client.post(
@@ -97,14 +97,15 @@ async def test_seed_and_synchronize_elastic_vote():
 
     # Synchronize new votes
     response = client.post(
-        "/elastic/synchronize-votes-es", headers=headers, json={})
-    assert response.status_code == 200
+        "/elastic/synchronize-votes-es?number=50000", headers=headers, json={})
+    assert response.status_code == 200    
 
     # Get election status, there should be new votes synched
     response = client.get(
         "/elastic/elections-status", headers=headers, json={})
     response = response.json()
-    votes_in_db_after_sync = response['data']['total_votes']
+    pprint(response)
+    votes_in_db_after_sync = response['data']['votes_synchronized_in_elastic']
     assert votes_in_db_after_sync == votes_in_db + number_of_votes_to_seed
 
 
