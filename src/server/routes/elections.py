@@ -72,6 +72,13 @@ async def validate_party_and_candidates(vote):
         }
         return content
 
+    if vote["party_id"] is None:
+        content = {
+            "status": "success",
+            "message": "Parties with candidates were successfully validated",
+        }
+        return content
+
     parties = await get_parties_with_candidates()
     for party in parties:
         if party["_id"] == vote["party_id"]:

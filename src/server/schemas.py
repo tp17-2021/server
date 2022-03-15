@@ -99,7 +99,7 @@ class VotingData(BaseModel):
 
 class Vote(BaseModel):
     token: str
-    party_id: int
+    party_id: Optional[int] = None
     election_id: str
     candidate_ids: List[int] = []
 
