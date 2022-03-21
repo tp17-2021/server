@@ -37,6 +37,7 @@ router = APIRouter(
 
 # function for the cURL requests to Elastic search
 
+
 def elasticsearch_curl(uri='', method='get', json_data=''):
 
     uri = f"http://{os.environ['ELASTIC_HOST']}:{os.environ['ELASTIC_PORT']}{uri}"
@@ -525,12 +526,11 @@ def calcualte_winning_parties_and_seats(transformed_data):
                         if unfillable_seats <= 0:
                             break
 
-
     # Set flag for candidates in parliament
     for party in transformed_data:
         for i, candidate in enumerate(party['candidates']):
             candidate['in_parliament'] = True if 'seats' in party and i < party['seats'] else False
-                
+
     return transformed_data
 
 
@@ -702,6 +702,8 @@ async def get_resilts_by_locality_mongo():
 async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest):
 
     DB = await get_database()
+    calculate_candidates_aggs = True if request.filter_value else False
+    print("calculate_candidates_aggs", calculate_candidates_aggs)
 
     eligible_voters_per_locality_count = await get_eligible_voters_per_locality(request.filter_by)
 
@@ -713,6 +715,7 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
         "aggs": {
             "agg_by_locality": {
                 "terms": {
+                    "size": c.ELASTIC_RESULTS_LIMIT,
                     "field": "polling_place." + request.filter_by
                 },
                 "aggs": {
@@ -720,27 +723,29 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
                         "terms": {
                             "size": c.ELASTIC_RESULTS_LIMIT,
                             "field": "party.id"
-                        },
-                        "aggs": {
-                            "agg_by_candidate": {
-                                "nested": {
-                                    "path": "candidates"
-                                },
-                                "aggs": {
-                                    "candidates": {
-                                        "terms": {
-                                            "size": c.ELASTIC_RESULTS_LIMIT,
-                                            "field": "candidates.fullname"
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                 }
             }
         }
     }
+
+    if calculate_candidates_aggs:
+        request_body["aggs"]["agg_by_locality"]["aggs"]["agg_by_party"]["aggs"] = {
+            "agg_by_candidate": {
+                "nested": {
+                    "path": "candidates"
+                },
+                "aggs": {
+                    "candidates": {
+                        "terms": {
+                            "size": c.ELASTIC_RESULTS_LIMIT,
+                            "field": "candidates.fullname"
+                        }
+                    }
+                }
+            }
+        }
 
     # Add filter value if provided in request
     if(request.filter_value):
@@ -764,12 +769,14 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
             candidates = []
             party_votes = party["doc_count"]
 
-            for candidate in party["agg_by_candidate"]["candidates"]["buckets"]:
-                candidates.append({
-                    "name": candidate["key"],
-                    "doc_count": candidate["doc_count"],
-                    "percentage": round(candidate["doc_count"] / locality_votes_total * 100, 4)
-                })
+            # run only if candidates aggs is available
+            if calculate_candidates_aggs:
+                for candidate in party["agg_by_candidate"]["candidates"]["buckets"]:
+                    candidates.append({
+                        "name": candidate["key"],
+                        "doc_count": candidate["doc_count"],
+                        "percentage": round(candidate["doc_count"] / locality_votes_total * 100, 4)
+                    })
 
             parties.append({
                 "id": party["key"],
@@ -780,7 +787,7 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
 
         locality = {
             "type": request.filter_by,
-            "name": row["key"],
+            "code": row["key"],
             "doc_count": row["doc_count"],
             "parties": parties,
             "registered_participants": eligible_voters_per_locality_count[row["key"]]
@@ -824,7 +831,7 @@ async def get_elections_status():
     registered_voters = (await get_eligible_voters_per_locality())['']
     votes_total_in_db = await DB.votes.count_documents({})
     votes_synchronized_in_db = await DB.votes.count_documents({"synchronized": True})
-   
+
     response = elasticsearch_curl(
         uri='/votes/_refresh',
         method='post',

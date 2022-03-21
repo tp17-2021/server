@@ -94,6 +94,9 @@ class VotingData(BaseModel):
     polling_places: List[PollingPlace] = []
     parties: List[Party] = []
     key_pairs: List[KeyPair] = []
+    municipalities: List[object]
+    counties: List[object]
+    regions: List[object]
     texts: Texts
 
 
@@ -183,19 +186,19 @@ class StatisticsPerPartyRequest(BaseModel):
 
 class StatisticsPerLocalityRequest(BaseModel):
     filter_by: str
-    filter_value: Optional[str] = None
+    filter_value: Optional[int] = None
 
     @validator('filter_by')
     def group_by_only_plausible_localities(cls, v):
-        possible_values = ['region_name', 'county_name', 'municipality_name', 'administrative_area_name']
+        possible_values = ['region_code', 'county_code', 'municipality_code', 'administrative_area_code']
         if v not in possible_values:
             raise ValueError('Invalid filter by value. Possible valuies: ' + ', '.join(possible_values))
         return v
     class Config:
         schema_extra = {
             "example": {
-                "filter_by": "region_name",
-                "filter_value" : "Prešovský kraj"
+                "filter_by": "region_code",
+                "filter_value" : 1
             }
         }
 

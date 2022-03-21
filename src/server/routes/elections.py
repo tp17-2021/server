@@ -1,3 +1,6 @@
+import re
+from mdutils.mdutils import MdUtils
+from time import gmtime, strftime
 import json
 import glob
 import base64
@@ -30,18 +33,20 @@ import asyncio
 from elasticsearch import Elasticsearch, helpers
 
 # Main elastic search connction
-ES = Elasticsearch(hosts= [{"scheme": "http", 'host': os.environ['ELASTIC_HOST'],'port': int(os.environ['ELASTIC_PORT'])}])
+ES = Elasticsearch(hosts=[{"scheme": "http", 'host': os.environ['ELASTIC_HOST'], 'port': int(
+    os.environ['ELASTIC_PORT'])}])
 
 # Create FastAPI router
 router = APIRouter(
-    prefix = "/elections",
-    tags = ["Elections"],
+    prefix="/elections",
+    tags=["Elections"],
 )
 
-async def validate_polling_place_id(polling_place_id):
-    DB  = await get_database()
 
-    if await DB.key_pairs.count_documents({"polling_place_id":polling_place_id}) == 0:
+async def validate_polling_place_id(polling_place_id):
+    DB = await get_database()
+
+    if await DB.key_pairs.count_documents({"polling_place_id": polling_place_id}) == 0:
         content = {
             "status": "failure",
             "message": "Invalid polling place id",
@@ -127,7 +132,7 @@ async def validate_tokens(tokens):
 async def validate_token_with_polling_place_id(token, polling_place_id):
     DB = await get_database()
 
-    if await DB.votes.count_documents({"token":token, "polling_place_id": polling_place_id}) != 0:
+    if await DB.votes.count_documents({"token": token, "polling_place_id": polling_place_id}) != 0:
         content = {
             "status": "failure",
             "message": "Duplicate combination of token and polling place id",
@@ -207,11 +212,12 @@ async def validate_votes(request):
         private_key_pem = key_pair["private_key_pem"]
         g_public_key_pem = key_pair["g_public_key_pem"]
 
-        decrypted_vote = electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
+        decrypted_vote = electiersa.decrypt_vote(
+            encrypted_vote, private_key_pem, g_public_key_pem)
         content = await validate_decryption(decrypted_vote, polling_place_id, max_id, _id)
         if content["status"] == "failure":
             return content
-            
+
         decrypted_vote["polling_place_id"] = polling_place_id
         decrypted_vote["_id"] = max_id + 1 + _id
 
@@ -245,6 +251,7 @@ async def validate_votes(request):
     }
     return content
 
+
 @router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}})
 async def vote(request: schemas.VotesEncrypted):
     """
@@ -256,6 +263,7 @@ async def vote(request: schemas.VotesEncrypted):
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content=content)
     return content
 
+
 @router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
 async def get_voting_data():
     """
@@ -266,15 +274,67 @@ async def get_voting_data():
     polling_places = [polling_place async for polling_place in DB.polling_places.find()]
     parties_with_candidates = await get_parties_with_candidates()
     key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
-    print(key_pairs)
-    
+
+    regions = [polling_place async for polling_place in DB.polling_places.aggregate([
+        {
+            '$group': {
+                '_id': '$region_code',
+                'name': {
+                    '$first': '$region_name'
+                }
+            }
+        }, {
+            '$project': {
+                'code': '$_id',
+                'name': '$name',
+                '_id': 0
+            }
+        }
+    ])]
+
+    counties = [polling_place async for polling_place in DB.polling_places.aggregate([
+        {
+            '$group': {
+                '_id': '$county_code',
+                'name': {
+                    '$first': '$county_name'
+                }
+            }
+        }, {
+            '$project': {
+                'code': '$_id',
+                'name': '$name',
+                '_id': 0
+            }
+        }
+    ])]
+
+    municipalitites = [polling_place async for polling_place in DB.polling_places.aggregate([
+        {
+            '$group': {
+                '_id': '$municipality_code',
+                'name': {
+                    '$first': '$municipality_name'
+                }
+            }
+        }, {
+            '$project': {
+                'code': '$_id',
+                'name': '$name',
+                '_id': 0
+            }
+        }
+    ])]
+
+    # print(key_pairs)
+
     # -----
     # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
     # polling_places = polling_places[:2]
     # parties_with_candidates = parties_with_candidates[:2]
     # key_pairs = key_pairs[:2]
     # -----
-    
+
     # multilingual text for VT application
     texts = {
         "elections_name_short": {
@@ -290,7 +350,7 @@ async def get_voting_data():
             "en": "30.11.2021",
         }
     }
-    
+
     image_paths = glob.glob("data/nrsr_2020/logos/*")
     for image_path in image_paths:
         for party_with_candidates in parties_with_candidates:
@@ -304,14 +364,15 @@ async def get_voting_data():
         "polling_places": polling_places,
         "parties": parties_with_candidates,
         "key_pairs": key_pairs,
-        "texts": texts
+        "texts": texts,
+        "regions": regions,
+        "counties": counties,
+        "municipalities": municipalitites
     }
     return content
 
 # -----------------------------------------------------------------------------
-from time import gmtime, strftime
-from mdutils.mdutils import MdUtils
-import re
+
 
 @router.get("/zapisnica", status_code=status.HTTP_200_OK)
 async def get_zapisnica():
@@ -327,7 +388,6 @@ async def get_zapisnica():
             parties[party["_id"]] = party["name"]
             for candidate in party["candidates"]:
                 candidates[candidate["_id"]] = candidate
-                
 
     polling_place = data["polling_places"][polling_place_id]
     # print(polling_place)
@@ -341,24 +401,22 @@ async def get_zapisnica():
     print(participated_voters_count)
 
     # Účasť voličov vo voľbách v %
-    voters_percentage = round((participated_voters_count / registered_voters_count) * 100, 2)
+    voters_percentage = round(
+        (participated_voters_count / registered_voters_count) * 100, 2)
     print(voters_percentage)
 
     date_and_time = strftime("%d.%m.%Y %H:%M:%S", gmtime())
-    mdFile = MdUtils(file_name="zapisnica.md", title=f"Zápisnica {date_and_time}")
+    mdFile = MdUtils(file_name="zapisnica.md",
+                     title=f"Zápisnica {date_and_time}")
 
     # Počet získaných hlasov pre každú politickú stranu alebo hnutie
     mdFile.new_header(level=1, title="TODO REMOVE")
- 
+
     # mdFile.new_header(level=2, title="Počet získaných hlasov pre každú politickú stranu alebo koalíciu")
     # mdFile.new_line()
 
-
     # mdFile.new_line("This is an inline code which contains bold and italics text and it is centered",
     #             bold_italics_code='cib', align='center')
-
-
-    
 
     mdFile.new_header(level=2, title="Tabuľka volebných kódov")
 
@@ -373,13 +431,14 @@ async def get_zapisnica():
         str(polling_place["region_code"]),
         str(polling_place["county_code"]),
         str(polling_place["municipality_code"]),
-        str(polling_place["polling_place_number"])  
+        str(polling_place["polling_place_number"])
     ])
 
     mdFile.new_line()
     mdFile.new_table(columns=4, rows=2, text=headers, text_align='center')
 
-    mdFile.new_header(level=2, title="Tabuľka získaných hlasov pre každú politickú stranu alebo koalíciu")
+    mdFile.new_header(
+        level=2, title="Tabuľka získaných hlasov pre každú politickú stranu alebo koalíciu")
 
     # headers = [
     #     "Číslo a názov politickej strany alebo koalície",
@@ -395,8 +454,8 @@ async def get_zapisnica():
     ]
 
     pipeline = [
-        {"$group" : {"_id":"$party_id", "count":{"$sum":1}}},
-        {"$sort":{"_id":1}}
+        {"$group": {"_id": "$party_id", "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
     ]
 
     voted_parties = {}
@@ -413,7 +472,8 @@ async def get_zapisnica():
         else:
             party_votes_count = 0
 
-        party_votes_percentage = round((party_votes_count / registered_voters_count) * 100, 2)
+        party_votes_percentage = round(
+            (party_votes_count / registered_voters_count) * 100, 2)
         # print(party_number, party_name, party_votes_count, party_votes_percentage)
 
         headers.extend([
@@ -424,11 +484,12 @@ async def get_zapisnica():
         ])
 
     mdFile.new_line()
-    mdFile.new_table(columns=4, rows=len(parties)+1, text=headers, text_align='left')
+    mdFile.new_table(columns=4, rows=len(parties)+1,
+                     text=headers, text_align='left')
 
     pipeline = [
         {"$unwind": "$candidate_ids"},
-        {"$group" : {"_id":"$candidate_ids", "count":{"$sum":1}}}
+        {"$group": {"_id": "$candidate_ids", "count": {"$sum": 1}}}
     ]
 
     voted_candidates = {}
@@ -445,7 +506,8 @@ async def get_zapisnica():
         else:
             candidate["votes_count"] = 0
 
-        candidate_votes_percentage = round((candidate["votes_count"] / registered_voters_count) * 100, 2)
+        candidate_votes_percentage = round(
+            (candidate["votes_count"] / registered_voters_count) * 100, 2)
         candidate["votes_percentage"] = candidate_votes_percentage
 
         party_name = parties[candidates[candidate_id]["party_number"]-1]
@@ -453,9 +515,10 @@ async def get_zapisnica():
             party_names[party_name] = [candidate]
         else:
             party_names[party_name].append(candidate)
-    
-    mdFile.new_header(level=2, title="Zoznam tabuliek získaných hlasov pre každého kandidáta vybranej politickej strany alebo koalície")
-    
+
+    mdFile.new_header(
+        level=2, title="Zoznam tabuliek získaných hlasov pre každého kandidáta vybranej politickej strany alebo koalície")
+
     # Počet získaných hlasov pre každého kandidáta
     for party_name in party_names:
         candidates = party_names[party_name]
@@ -488,16 +551,17 @@ async def get_zapisnica():
             ])
 
         mdFile.new_line()
-        mdFile.new_table(columns=4, rows=len(candidates)+1, text=list_of_strings, text_align='left')
+        mdFile.new_table(columns=4, rows=len(candidates)+1,
+                         text=list_of_strings, text_align='left')
         break
 
     mdFile.create_md_file()
 
-
     with open("zapisnica.md", "r") as file:
         text = file.read()
         text = re.sub(r"# TODO REMOVE", "", text)
-        text = re.sub(r"\| :--- \| :--- \| :--- \| :--- \|", "| :---: | :--- | :---: | :---: |", text)
+        text = re.sub(r"\| :--- \| :--- \| :--- \| :--- \|",
+                      "| :---: | :--- | :---: | :---: |", text)
 
     with open("zapisnica.md", "w") as file:
         file.write(text)
