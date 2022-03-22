@@ -21,6 +21,10 @@ TABLE_POLLING_PLACE
     <td style="text-align:left">Počet odovzdaných hlasov</td>
     <td style="text-align:right">PARTICIPATED_VOTERS_COUNT</td>
   </tr>
+  <tr>
+    <td style="text-align:left">Podiel odovzdaných hlasov v %</td>
+    <td style="text-align:right">PARTICIPATED_VOTERS_PERCENTAGE</td>
+  </tr>
 </table>
 
 ## III.
@@ -37,11 +41,11 @@ TABLE_CANDIDATES
 
 ## V.
 
-Z celkového počtu REGISTERED_COMMISSION_MEMBERS_COUNT členov miestnej volebnej komisie bolo prítomných PARTICIPATED_COMMISSION_MEMBERS_COUNT členov.
+Z celkového počtu REGISTERED_MEMBERS_COUNT členov miestnej volebnej komisie bolo prítomných PARTICIPATED_MEMBERS_COUNT členov.
 
 Ďalej boli prítomný:
 
-NEXT_MEMBERS_OF_COMMISSION
+ANOTHER_MEMBERS
 
 ---
 
@@ -57,8 +61,9 @@ TABLE_MEMBERS
 
 Zápisnicu odmietli podpísať:
 
-REJECTED
+TABLE_MEMBERS_WHO_DISAGREE
 
 ---
+## VI.
 
 Dátum a čas vyhotovenia zápisnice: DATE_AND_TIME

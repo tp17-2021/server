@@ -207,45 +207,41 @@ class Member(BaseModel):
     name: str
     signature: str
 
+class Disagreement(BaseModel):
+    name: str
+    reason: str
 
-class Document(BaseModel):
+class Commission(BaseModel):
     polling_place_id: int
-    registered_commission_members_count: int
-    participated_commission_members_count: int
-    next_members_of_commission: List[str] = None
-    president: Member
-    members: List[Member] = None
-    rejected: List[str] = None
+    registered_members_count: int
+    participated_members_count: int
+    participated_members: List[str] = None    
+    another_members: List[str] = None
+    president_name: str
+    participated_members_who_disagree: List[Disagreement] = None    
     class Config:
         schema_extra = {
             "example": {
                 "polling_place_id": 0,
-                "registered_commission_members_count": 14,
-                "participated_commission_members_count": 14,
-                "next_members_of_commission": [
-                    "Bc. Matúš  Staš",
-                    "Bc. Marec  Ceľuch",
+                "registered_members_count": 7,
+                "participated_members_count": 4,
+                "participated_members": [
+                    "Bc. Libor Duda",
+                    "Bc. Timotej Králik",
+                    "Bc. Lucia Janíková"
+                ],
+                "another_members": [
+                    "Bc. Matúš Staš",
+                    "Bc. Marek Ceľuch",
                     "Bc. Adam Slatinský",
                     "Bc. Denis Klenovič"
                 ],
-                "president": {
-                    "name": "Boris Osuský",
-                    "signature": "todo"
-                },
-                "members": [
+                "president_name": "Boris Osuský",
+                "participated_members_who_disagree": [
                     {
-                        "name": "Bc. Libor Duda",
-                        "signature": "todo"
-                    },
-                    {
-                        "name": "Bc. Timotej Králik",
-                        "signature": "todo"
-                    },
-                    {
-                        "name": "Bc. Lucia Janíková",
-                        "signature": "todo"
+                        "name": "Ing. Janko Mrkvička",
+                        "reason": "Bc. Libor Duda bol naklonení strane SMER a prirátaval jej aj také hlasy, ktoré jej nemajú platiť"
                     }
-                ],
-                "rejected": []
+                ]
             }
         }

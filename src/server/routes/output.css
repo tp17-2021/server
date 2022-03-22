@@ -17,10 +17,10 @@ table, th, td {
 td {
    text-align: center;
 }
-/* 
+
 .borderless td {
     border: none;
-} */
+}
 
 .borderless td{
     border: none;

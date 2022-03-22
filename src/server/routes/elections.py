@@ -388,7 +388,7 @@ def replace_header_polling_place(region_code: int, county_code: int, municipalit
 def replace_header_parties(parties) -> str:
     table_rows = []
     for party in parties:
-        tr = f'<tr><td><div style="width: 80px">{party["order"]}</div></td><td><div style="width: 420px">{party["name"]}</div></td><td><div style="width: 75px">{party["votes_count"]}</div></td><td><div style="width: 90px">{format(float(party["votes_percentage"]), ".2f")}</div></td></tr>'
+        tr = f'<tr><td><div style="width: 80px">{party["order"]}</div></td><td style="text-align:left"><div style="width: 420px">{party["name"]}</div></td><td><div style="width: 75px">{party["votes_count"]}</div></td><td><div style="width: 90px">{format(float(party["votes_percentage"]), ".2f")}</div></td></tr>'
         table_rows.append(tr)
 
     with open("src/server/routes/table_parties.html", "r", encoding="utf-8") as file:
@@ -477,7 +477,7 @@ async def get_candidate_votes(parties, candidates, polling_place):
 def replace_header_candidates(candidates) -> str:
     table_rows = []
     for candidate in candidates:
-        tr = f'<tr><td><div style="width: 80px">{candidate["order"]}</div></td><td><div style="width: 420px">{candidate["name"]}</div></td><td><div style="width: 75px">{candidate["votes_count"]}</div></td><td><div style="width: 90px">{format(candidate["votes_percentage"], ".2f")}</div></td></tr>'
+        tr = f'<tr><td><div style="width: 80px">{candidate["order"]}</div></td><td style="text-align:left"><div style="width: 420px">{candidate["name"]}</div></td><td><div style="width: 75px">{candidate["votes_count"]}</div></td><td><div style="width: 90px">{format(candidate["votes_percentage"], ".2f")}</div></td></tr>'
         table_rows.append(tr)
 
     with open("src/server/routes/table_candidates.html", "r", encoding="utf-8") as file:
@@ -486,8 +486,8 @@ def replace_header_candidates(candidates) -> str:
         return text
 
 
-def replace_header_president(name, signature) -> str:    
-    table_row = f"<tr><td>{name}</td><td>{signature}</td></tr>"
+def replace_header_president(president_name) -> str:    
+    table_row = f'<tr><td style="text-align:left">{president_name}</td><td>.......</td></tr>'
 
     with open("src/server/routes/table_president.html", "r", encoding="utf-8") as file:
         text = file.read()
@@ -495,10 +495,10 @@ def replace_header_president(name, signature) -> str:
         return text
 
 
-def replace_header_members(members) -> str:    
+def replace_header_members(member_names) -> str:    
     table_rows = []
-    for member in members:
-        tr = f"<tr><td>{member.name}</td><td>{member.signature}</td></tr>"
+    for member_name in member_names:
+        tr = f'<tr><td style="text-align:left">{member_name}</td><td>.......</td></tr>'
         table_rows.append(tr)
 
     with open("src/server/routes/table_members.html", "r", encoding="utf-8") as file:
@@ -506,9 +506,20 @@ def replace_header_members(members) -> str:
         text = re.sub(r"table_rows", "".join(table_rows), text)
         return text
 
+def replace_header_disagree(members) -> str:    
+    table_rows = []
+    for member in members:
+        tr = f'<tr><td style="text-align:left">{member.name}</td><td style="text-align:left">{member.reason}</td></tr>'
+        table_rows.append(tr)
+
+    with open("src/server/routes/table_members_who_disagree.html", "r", encoding="utf-8") as file:
+        text = file.read()
+        text = re.sub(r"table_rows", "".join(table_rows), text)
+        return text
+
 
 @router.post("/zapisnica", status_code=status.HTTP_200_OK)
-async def get_zapisnica(request: schemas.Document):
+async def get_zapisnica(request: schemas.Commission):
     DB = await get_database()
 
     polling_place_id = request.polling_place_id
@@ -518,6 +529,7 @@ async def get_zapisnica(request: schemas.Document):
     date_and_time = time.strftime("%d.%m.%Y %H:%M:%S")
     registered_voters_count = polling_place["registered_voters_count"]
     participated_voters_count = await DB.votes.count_documents({})
+    participated_voters_percentage = round(participated_voters_count / registered_voters_count, 2)
 
     table_polling_place = replace_header_polling_place(str(polling_place["region_code"]), str(polling_place["county_code"]), str(polling_place["municipality_code"]), str(polling_place["polling_place_number"]))
 
@@ -554,34 +566,26 @@ async def get_zapisnica(request: schemas.Document):
 
         c = replace_header_candidates(data)
         table_candidates += f"{c}\n"
-        break
+        break # delete this line when done
 
-    # if len(request.next_members_of_commission) == 0:
-    #     next_members_of_commission = "---"
-    # else:
-    #     next_members_of_commission = ", ".join(request.next_members_of_commission)
-
-    # if len(request.rejected) == 0:
-    #     rejected = "---"
-    # else:
-    #     rejected = ", ".join(request.rejected)
-
-    table_president = replace_header_president(request.president.name, request.president.signature)    
-    table_members = replace_header_members(request.members)    
+    table_president = replace_header_president(request.president_name)    
+    table_members = replace_header_members(request.participated_members)    
+    table_members_who_disagree = replace_header_members(request.participated_members_who_disagree)    
 
     with open("src/server/routes/template.md", "r", encoding="utf-8") as file:
         text = file.read()
         text = re.sub(r"REGISTERED_VOTERS_COUNT", str(registered_voters_count), text)
         text = re.sub(r"PARTICIPATED_VOTERS_COUNT", str(participated_voters_count), text)
+        text = re.sub(r"PARTICIPATED_VOTERS_PERCENTAGE", format(participated_voters_percentage, ".2f"), text)
         text = re.sub(r"TABLE_POLLING_PLACE", table_polling_place, text)
         text = re.sub(r"TABLE_PARTIES", table_parties, text)
         text = re.sub(r"TABLE_CANDIDATES", table_candidates, text)
-        text = re.sub(r"REGISTERED_COMMISSION_MEMBERS_COUNT", str(request.registered_commission_members_count), text)
-        text = re.sub(r"PARTICIPATED_COMMISSION_MEMBERS_COUNT", str(request.participated_commission_members_count), text)
-        text = re.sub(r"NEXT_MEMBERS_OF_COMMISSION", ",".join(request.next_members_of_commission), text)
+        text = re.sub(r"REGISTERED_MEMBERS_COUNT", str(request.registered_members_count), text)
+        text = re.sub(r"PARTICIPATED_MEMBERS_COUNT", str(request.participated_members_count), text)
+        text = re.sub(r"ANOTHER_MEMBERS", ", ".join(request.another_members), text)
         text = re.sub(r"TABLE_PRESIDENT", table_president, text)
+        text = re.sub(r"TABLE_MEMBERS_WHO_DISAGREE", table_members_who_disagree, text)
         text = re.sub(r"TABLE_MEMBERS", table_members, text)
-        text = re.sub(r"REJECTED", ", ".join(request.rejected), text)
         text = re.sub(r"DATE_AND_TIME", date_and_time, text)
         text = re.sub(r"DATE", date, text)
 
