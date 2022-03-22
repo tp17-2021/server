@@ -41,13 +41,7 @@ TABLE_CANDIDATES
 
 ## V.
 
-Z celkového počtu REGISTERED_MEMBERS_COUNT členov miestnej volebnej komisie bolo prítomných PARTICIPATED_MEMBERS_COUNT členov.
-
-Ďalej boli prítomný:
-
-ANOTHER_MEMBERS
-
----
+V miestnej volebnej komisie bolo prítomných PARTICIPATED_MEMBERS_COUNT členov.
 
 Zápisnica bola členmi miestnej volebnej komisie pre voľby do Národnej rady Slovenskej republiky prečítaná a uznaná za správnu, o čom svedčia ich podpisy.
 
@@ -59,11 +53,6 @@ TABLE_PRESIDENT
 
 TABLE_MEMBERS
 
-Zápisnicu odmietli podpísať:
-
-TABLE_MEMBERS_WHO_DISAGREE
-
----
 ## VI.
 
 Dátum a čas vyhotovenia zápisnice: DATE_AND_TIME

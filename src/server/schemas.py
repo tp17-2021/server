@@ -202,46 +202,35 @@ class StatisticsPerLocalityRequest(BaseModel):
             }
         }
 
-
 class Member(BaseModel):
     name: str
-    signature: str
-
-class Disagreement(BaseModel):
-    name: str
-    reason: str
+    agree: bool
 
 class Commission(BaseModel):
     polling_place_id: int
-    registered_members_count: int
-    participated_members_count: int
-    participated_members: List[str] = None    
-    another_members: List[str] = None
-    president_name: str
-    participated_members_who_disagree: List[Disagreement] = None    
+    participated_members: List[Member] = None
+    president: Member
     class Config:
         schema_extra = {
             "example": {
                 "polling_place_id": 0,
-                "registered_members_count": 7,
-                "participated_members_count": 4,
                 "participated_members": [
-                    "Bc. Libor Duda",
-                    "Bc. Timotej Králik",
-                    "Bc. Lucia Janíková"
-                ],
-                "another_members": [
-                    "Bc. Matúš Staš",
-                    "Bc. Marek Ceľuch",
-                    "Bc. Adam Slatinský",
-                    "Bc. Denis Klenovič"
-                ],
-                "president_name": "Boris Osuský",
-                "participated_members_who_disagree": [
                     {
-                        "name": "Ing. Janko Mrkvička",
-                        "reason": "Bc. Libor Duda bol naklonení strane SMER a prirátaval jej aj také hlasy, ktoré jej nemajú platiť"
+                        "name": "Bc. Libor Duda",
+                        "agree": True
+                    },
+                    {
+                        "name": "Bc. Timotej Králik",
+                        "agree": False
+                    },
+                    {
+                        "name": "Bc. Lucia Janíková",
+                        "agree": True
                     }
-                ]
+                ],
+                "president": {
+                    "name": "Boris Osuský",
+                    "agree": True
+                }
             }
         }

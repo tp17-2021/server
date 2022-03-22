@@ -486,8 +486,8 @@ def replace_header_candidates(candidates) -> str:
         return text
 
 
-def replace_header_president(president_name) -> str:    
-    table_row = f'<tr><td style="text-align:left">{president_name}</td><td>.......</td></tr>'
+def replace_header_president(president) -> str:    
+    table_row = f'<tr><td style="text-align:left">{president.name}</td><td>{"áno" if president.agree else "nie"}</td></tr>'
 
     with open("src/server/routes/table_president.html", "r", encoding="utf-8") as file:
         text = file.read()
@@ -495,28 +495,16 @@ def replace_header_president(president_name) -> str:
         return text
 
 
-def replace_header_members(member_names) -> str:    
+def replace_header_members(members) -> str:    
     table_rows = []
-    for member_name in member_names:
-        tr = f'<tr><td style="text-align:left">{member_name}</td><td>.......</td></tr>'
+    for member in members:
+        tr = f'<tr><td style="text-align:left">{member.name}</td><td>{"áno" if member.agree else "nie"}</td></tr>'
         table_rows.append(tr)
 
     with open("src/server/routes/table_members.html", "r", encoding="utf-8") as file:
         text = file.read()
         text = re.sub(r"table_rows", "".join(table_rows), text)
         return text
-
-def replace_header_disagree(members) -> str:    
-    table_rows = []
-    for member in members:
-        tr = f'<tr><td style="text-align:left">{member.name}</td><td style="text-align:left">{member.reason}</td></tr>'
-        table_rows.append(tr)
-
-    with open("src/server/routes/table_members_who_disagree.html", "r", encoding="utf-8") as file:
-        text = file.read()
-        text = re.sub(r"table_rows", "".join(table_rows), text)
-        return text
-
 
 @router.post("/zapisnica", status_code=status.HTTP_200_OK)
 async def get_zapisnica(request: schemas.Commission):
@@ -568,9 +556,10 @@ async def get_zapisnica(request: schemas.Commission):
         table_candidates += f"{c}\n"
         break # delete this line when done
 
-    table_president = replace_header_president(request.president_name)    
-    table_members = replace_header_members(request.participated_members)    
-    table_members_who_disagree = replace_header_members(request.participated_members_who_disagree)    
+    table_president = replace_header_president(request.president)
+    table_members = replace_header_members(request.participated_members)
+
+    print("OK")
 
     with open("src/server/routes/template.md", "r", encoding="utf-8") as file:
         text = file.read()
@@ -580,11 +569,8 @@ async def get_zapisnica(request: schemas.Commission):
         text = re.sub(r"TABLE_POLLING_PLACE", table_polling_place, text)
         text = re.sub(r"TABLE_PARTIES", table_parties, text)
         text = re.sub(r"TABLE_CANDIDATES", table_candidates, text)
-        text = re.sub(r"REGISTERED_MEMBERS_COUNT", str(request.registered_members_count), text)
-        text = re.sub(r"PARTICIPATED_MEMBERS_COUNT", str(request.participated_members_count), text)
-        text = re.sub(r"ANOTHER_MEMBERS", ", ".join(request.another_members), text)
+        text = re.sub(r"PARTICIPATED_MEMBERS_COUNT", str(len(request.participated_members)+1), text)
         text = re.sub(r"TABLE_PRESIDENT", table_president, text)
-        text = re.sub(r"TABLE_MEMBERS_WHO_DISAGREE", table_members_who_disagree, text)
         text = re.sub(r"TABLE_MEMBERS", table_members, text)
         text = re.sub(r"DATE_AND_TIME", date_and_time, text)
         text = re.sub(r"DATE", date, text)
