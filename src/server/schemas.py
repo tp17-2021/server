@@ -203,7 +203,49 @@ class StatisticsPerLocalityRequest(BaseModel):
         }
 
 
-# Statistics
-# jednoduche vyhodnotenie
-# porataj pogroupovane podla can Id a party id
-# pomenovanie na predbezne (urcene len pre G a pre Admina + TV) / vysledky ()
+class Member(BaseModel):
+    name: str
+    signature: str
+
+
+class Document(BaseModel):
+    polling_place_id: int
+    registered_commission_members_count: int
+    participated_commission_members_count: int
+    next_members_of_commission: List[str] = None
+    president: Member
+    members: List[Member] = None
+    rejected: List[str] = None
+    class Config:
+        schema_extra = {
+            "example": {
+                "polling_place_id": 0,
+                "registered_commission_members_count": 14,
+                "participated_commission_members_count": 14,
+                "next_members_of_commission": [
+                    "Bc. Matúš  Staš",
+                    "Bc. Marec  Ceľuch",
+                    "Bc. Adam Slatinský",
+                    "Bc. Denis Klenovič"
+                ],
+                "president": {
+                    "name": "Boris Osuský",
+                    "signature": "todo"
+                },
+                "members": [
+                    {
+                        "name": "Bc. Libor Duda",
+                        "signature": "todo"
+                    },
+                    {
+                        "name": "Bc. Timotej Králik",
+                        "signature": "todo"
+                    },
+                    {
+                        "name": "Bc. Lucia Janíková",
+                        "signature": "todo"
+                    }
+                ],
+                "rejected": []
+            }
+        }

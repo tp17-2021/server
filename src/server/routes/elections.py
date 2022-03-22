@@ -371,15 +371,33 @@ async def get_voting_data():
     }
     return content
 
-# -----------------------------------------------------------------------------
 
 
-@router.get("/zapisnica", status_code=status.HTTP_200_OK)
-async def get_zapisnica():
-    polling_place_id = 0
 
-    DB = await get_database()
 
+def replace_header_polling_place(region_code: int, county_code: int, municipality_code: int, polling_place_code: int) -> str:
+    with open("src/server/routes/table_polling_place.html", "r", encoding="utf-8") as file:
+        text = file.read()
+        text = re.sub(r"region_code", str(region_code), text)
+        text = re.sub(r"county_code", str(county_code), text)
+        text = re.sub(r"municipality_code", str(municipality_code), text)
+        text = re.sub(r"polling_place_code", str(polling_place_code), text)
+        return text
+
+
+def replace_header_parties(parties) -> str:
+    table_rows = []
+    for party in parties:
+        tr = f'<tr><td><div style="width: 80px">{party["order"]}</div></td><td><div style="width: 420px">{party["name"]}</div></td><td><div style="width: 75px">{party["votes_count"]}</div></td><td><div style="width: 90px">{format(float(party["votes_percentage"]), ".2f")}</div></td></tr>'
+        table_rows.append(tr)
+
+    with open("src/server/routes/table_parties.html", "r", encoding="utf-8") as file:
+        text = file.read()
+        text = re.sub(r"table_rows", "".join(table_rows), text)
+        return text
+
+
+def load_config(polling_place_id: int):
     parties = {}
     candidates = {}
     with open("src/server/routes/voting-data") as file:
@@ -389,73 +407,15 @@ async def get_zapisnica():
             for candidate in party["candidates"]:
                 candidates[candidate["_id"]] = candidate
 
-    polling_place = data["polling_places"][polling_place_id]
-    # print(polling_place)
+    return parties, candidates, data["polling_places"][polling_place_id]
 
-    # Počer voličov zapísaných v zozname voličov
-    registered_voters_count = polling_place["registered_voters_count"]
-    print(registered_voters_count)
 
-    # Počet voličov, ktorý sa zúčastnili na hlasovaní
-    participated_voters_count = await DB.votes.count_documents({})
-    print(participated_voters_count)
-
-    # Účasť voličov vo voľbách v %
-    voters_percentage = round(
-        (participated_voters_count / registered_voters_count) * 100, 2)
-    print(voters_percentage)
-
-    date_and_time = strftime("%d.%m.%Y %H:%M:%S", gmtime())
-    mdFile = MdUtils(file_name="zapisnica.md",
-                     title=f"Zápisnica {date_and_time}")
-
-    # Počet získaných hlasov pre každú politickú stranu alebo hnutie
-    mdFile.new_header(level=1, title="TODO REMOVE")
-
-    # mdFile.new_header(level=2, title="Počet získaných hlasov pre každú politickú stranu alebo koalíciu")
-    # mdFile.new_line()
-
-    # mdFile.new_line("This is an inline code which contains bold and italics text and it is centered",
-    #             bold_italics_code='cib', align='center')
-
-    mdFile.new_header(level=2, title="Tabuľka volebných kódov")
-
-    headers = [
-        "Kraj",
-        "Okres",
-        "Obec",
-        "Okrsok"
-    ]
-
-    headers.extend([
-        str(polling_place["region_code"]),
-        str(polling_place["county_code"]),
-        str(polling_place["municipality_code"]),
-        str(polling_place["polling_place_number"])
-    ])
-
-    mdFile.new_line()
-    mdFile.new_table(columns=4, rows=2, text=headers, text_align='center')
-
-    mdFile.new_header(
-        level=2, title="Tabuľka získaných hlasov pre každú politickú stranu alebo koalíciu")
-
-    # headers = [
-    #     "Číslo a názov politickej strany alebo koalície",
-    #     "Počet získaných hlasov",
-    #     "Podiel získaných hlasov v %"
-    # ]
-
-    headers = [
-        "Číslo",
-        "Názov",
-        "Počet hlasov",
-        "Podiel hlasov v %"
-    ]
+async def get_party_votes(parties, polling_place):
+    DB  = await get_database()
 
     pipeline = [
-        {"$group": {"_id": "$party_id", "count": {"$sum": 1}}},
-        {"$sort": {"_id": 1}}
+        {"$group" : {"_id":"$party_id", "count":{"$sum":1}}},
+        {"$sort":{"_id":1}}
     ]
 
     voted_parties = {}
@@ -463,33 +423,28 @@ async def get_zapisnica():
     for result in results:
         voted_parties[result["_id"]] = result["count"]
 
-    print(len(parties))
-    for party_id in parties:
-        party_name = parties[party_id]
-        party_number = party_id+1
+    parties_tmp = parties.copy()
+    for party_id in parties_tmp:        
         if party_id in voted_parties:
-            party_votes_count = voted_parties[party_id]
+            votes_count = voted_parties[party_id]
         else:
-            party_votes_count = 0
+            votes_count = 0
 
-        party_votes_percentage = round(
-            (party_votes_count / registered_voters_count) * 100, 2)
-        # print(party_number, party_name, party_votes_count, party_votes_percentage)
+        parties_tmp[party_id] += f"\t{votes_count}"
 
-        headers.extend([
-            str(party_number),
-            str(party_name),
-            str(party_votes_count),
-            str(party_votes_percentage)
-        ])
+        registered_voters_count = polling_place["registered_voters_count"]
+        votes_percentage = round((votes_count / registered_voters_count) * 100, 2)
+        parties_tmp[party_id] += f"\t{votes_percentage}"
 
-    mdFile.new_line()
-    mdFile.new_table(columns=4, rows=len(parties)+1,
-                     text=headers, text_align='left')
+    return parties_tmp
+
+
+async def get_candidate_votes(parties, candidates, polling_place):
+    DB  = await get_database()
 
     pipeline = [
         {"$unwind": "$candidate_ids"},
-        {"$group": {"_id": "$candidate_ids", "count": {"$sum": 1}}}
+        {"$group" : {"_id":"$candidate_ids", "count":{"$sum":1}}}
     ]
 
     voted_candidates = {}
@@ -506,8 +461,8 @@ async def get_zapisnica():
         else:
             candidate["votes_count"] = 0
 
-        candidate_votes_percentage = round(
-            (candidate["votes_count"] / registered_voters_count) * 100, 2)
+        registered_voters_count = polling_place["registered_voters_count"]
+        candidate_votes_percentage = round((candidate["votes_count"] / registered_voters_count) * 100, 2)
         candidate["votes_percentage"] = candidate_votes_percentage
 
         party_name = parties[candidates[candidate_id]["party_number"]-1]
@@ -516,52 +471,119 @@ async def get_zapisnica():
         else:
             party_names[party_name].append(candidate)
 
-    mdFile.new_header(
-        level=2, title="Zoznam tabuliek získaných hlasov pre každého kandidáta vybranej politickej strany alebo koalície")
+    return party_names
 
-    # Počet získaných hlasov pre každého kandidáta
-    for party_name in party_names:
-        candidates = party_names[party_name]
-        party_number = candidates[0]["party_number"]
 
-        # print(party_number)
-        # print(party_name)
-        # mdFile.new_header(level=2, title="Číslo a názov politickej strany alebo koalície")
-        mdFile.new_header(level=3, title=party_name)
+def replace_header_candidates(candidates) -> str:
+    table_rows = []
+    for candidate in candidates:
+        tr = f'<tr><td><div style="width: 80px">{candidate["order"]}</div></td><td><div style="width: 420px">{candidate["name"]}</div></td><td><div style="width: 75px">{candidate["votes_count"]}</div></td><td><div style="width: 90px">{format(candidate["votes_percentage"], ".2f")}</div></td></tr>'
+        table_rows.append(tr)
 
-        list_of_strings = [
-            "Poradové číslo",
-            "Meno, priezvisko a titul kandidáta",
-            "Počet získaných hlasov",
-            "Podiel získaných hlasov v %"
-        ]
+    with open("src/server/routes/table_candidates.html", "r", encoding="utf-8") as file:
+        text = file.read()
+        text = re.sub(r"table_rows", "".join(table_rows), text)
+        return text
 
-        for candidate in candidates:
-            # print(candidate)
 
-            candidate_name = f"{candidate['first_name']} {candidate['last_name']}"
-            if len(candidate["degrees_before"]):
-                candidate_name += f", {candidate['degrees_before']}"
+def replace_header_president(name, signature) -> str:    
+    table_row = f"<tr><td>{name}</td><td>{signature}</td></tr>"
 
-            list_of_strings.extend([
-                str(candidate["order"]),
-                candidate_name,
-                str(candidate["votes_count"]),
-                str(candidate["votes_percentage"]),
-            ])
+    with open("src/server/routes/table_president.html", "r", encoding="utf-8") as file:
+        text = file.read()
+        text = re.sub(r"table_row", table_row, text)
+        return text
 
-        mdFile.new_line()
-        mdFile.new_table(columns=4, rows=len(candidates)+1,
-                         text=list_of_strings, text_align='left')
+
+def replace_header_members(members) -> str:    
+    table_rows = []
+    for member in members:
+        tr = f"<tr><td>{member.name}</td><td>{member.signature}</td></tr>"
+        table_rows.append(tr)
+
+    with open("src/server/routes/table_members.html", "r", encoding="utf-8") as file:
+        text = file.read()
+        text = re.sub(r"table_rows", "".join(table_rows), text)
+        return text
+
+
+@router.post("/zapisnica", status_code=status.HTTP_200_OK)
+async def get_zapisnica(request: schemas.Document):
+    DB = await get_database()
+
+    polling_place_id = request.polling_place_id
+    parties, candidates, polling_place = load_config(polling_place_id)
+
+    date = time.strftime("%d.%m.%Y")
+    date_and_time = time.strftime("%d.%m.%Y %H:%M:%S")
+    registered_voters_count = polling_place["registered_voters_count"]
+    participated_voters_count = await DB.votes.count_documents({})
+
+    table_polling_place = replace_header_polling_place(str(polling_place["region_code"]), str(polling_place["county_code"]), str(polling_place["municipality_code"]), str(polling_place["polling_place_number"]))
+
+    data = []
+    result = await get_party_votes(parties, polling_place)
+    for party_id in result:
+        name, votes_count, votes_percentage = result[party_id].split("\t")
+        data.append({
+            "order": party_id+1,
+            "name": name,
+            "votes_count": votes_count,
+            "votes_percentage": votes_percentage
+        })
+    table_parties = replace_header_parties(data)
+    
+    table_candidates = ""
+    result = await get_candidate_votes(parties, candidates, polling_place)
+    for party_name in result:
+        table_candidates += f"### {party_name}\n"
+
+        data = []
+        C = result[party_name]
+        for c in C:
+            candidate_name = f"{c['first_name']} {c['last_name']}"
+            if len(c["degrees_before"]):
+                candidate_name += f", {c['degrees_before']}"
+
+            data.append({
+                "order": c["order"],
+                "name": candidate_name,
+                "votes_count": c["votes_count"],
+                "votes_percentage": c["votes_percentage"],
+            })
+
+        c = replace_header_candidates(data)
+        table_candidates += f"{c}\n"
         break
 
-    mdFile.create_md_file()
+    # if len(request.next_members_of_commission) == 0:
+    #     next_members_of_commission = "---"
+    # else:
+    #     next_members_of_commission = ", ".join(request.next_members_of_commission)
 
-    with open("zapisnica.md", "r") as file:
+    # if len(request.rejected) == 0:
+    #     rejected = "---"
+    # else:
+    #     rejected = ", ".join(request.rejected)
+
+    table_president = replace_header_president(request.president.name, request.president.signature)    
+    table_members = replace_header_members(request.members)    
+
+    with open("src/server/routes/template.md", "r", encoding="utf-8") as file:
         text = file.read()
-        text = re.sub(r"# TODO REMOVE", "", text)
-        text = re.sub(r"\| :--- \| :--- \| :--- \| :--- \|",
-                      "| :---: | :--- | :---: | :---: |", text)
+        text = re.sub(r"REGISTERED_VOTERS_COUNT", str(registered_voters_count), text)
+        text = re.sub(r"PARTICIPATED_VOTERS_COUNT", str(participated_voters_count), text)
+        text = re.sub(r"TABLE_POLLING_PLACE", table_polling_place, text)
+        text = re.sub(r"TABLE_PARTIES", table_parties, text)
+        text = re.sub(r"TABLE_CANDIDATES", table_candidates, text)
+        text = re.sub(r"REGISTERED_COMMISSION_MEMBERS_COUNT", str(request.registered_commission_members_count), text)
+        text = re.sub(r"PARTICIPATED_COMMISSION_MEMBERS_COUNT", str(request.participated_commission_members_count), text)
+        text = re.sub(r"NEXT_MEMBERS_OF_COMMISSION", ",".join(request.next_members_of_commission), text)
+        text = re.sub(r"TABLE_PRESIDENT", table_president, text)
+        text = re.sub(r"TABLE_MEMBERS", table_members, text)
+        text = re.sub(r"REJECTED", ", ".join(request.rejected), text)
+        text = re.sub(r"DATE_AND_TIME", date_and_time, text)
+        text = re.sub(r"DATE", date, text)
 
-    with open("zapisnica.md", "w") as file:
+    with open("src/server/routes/output.md", "w", encoding="utf-8") as file:
         file.write(text)
