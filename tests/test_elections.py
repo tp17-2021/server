@@ -494,10 +494,11 @@ async def test_vote_invalid_keys():
 
 
 @pytest.mark.asyncio
-async def test_vote_valid_candidates():
+async def test_vote_without_candidates():
     """
-    Vote with zero candidates is still valid vote
+    Vote without candidates is still valid vote
     """
+
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
@@ -536,6 +537,7 @@ async def test_vote_valid_party_id():
     """
     Vote with no party id is still valid vote
     """
+
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
@@ -548,11 +550,7 @@ async def test_vote_valid_party_id():
         "token": "fjosjfidsw",
         "party_id": None,
         "election_id": "election_id",
-        "candidate_ids": [
-            1075,
-            1076,
-            1077
-        ]
+        "candidate_ids": []
     }
 
     encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
@@ -571,3 +569,44 @@ async def test_vote_valid_party_id():
 
     response = client.post("/elections/vote", headers=headers, json=payload)
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_vote_invalid_combination_of_party_id_and_candidate_ids():
+    """
+    When party_id is None there is no possibility to have length of candidate_ids greater than zero
+    """
+
+    db = connect_to_db()
+    asyncio.get_event_loop().run_until_complete(connect_to_mongo())
+
+    polling_place_id = 0
+    key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
+    g_private_key_pem = key_pair["g_private_key_pem"]
+    public_key_pem = key_pair["public_key_pem"]
+
+    vote = {
+        "token": "fjosjfidsw",
+        "party_id": None,
+        "election_id": "election_id",
+        "candidate_ids": [
+            0
+        ]
+    }
+
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "polling_place_id": polling_place_id,
+        "votes": [
+            encrypted_vote.__dict__
+        ]
+    }
+
+    response = client.post("/elections/vote", headers=headers, json=payload)
+    assert response.status_code == 400

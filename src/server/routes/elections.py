@@ -78,10 +78,17 @@ async def validate_party_and_candidates(vote):
         return content
 
     if vote["party_id"] is None:
-        content = {
-            "status": "success",
-            "message": "Parties with candidates were successfully validated",
-        }
+
+        if len(candidate_ids) != 0:
+            content = {
+                "status": "failure",
+                "message": "When party_id is None there is no possibility to have length of candidate_ids greater than zero",
+            }
+        else:
+            content = {
+                "status": "success",
+                "message": "Parties with candidates were successfully validated",
+            }
         return content
 
     parties = await get_parties_with_candidates()
