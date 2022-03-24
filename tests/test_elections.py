@@ -472,6 +472,7 @@ async def test_vote_invalid_keys():
     """
     Invalid keys: Wrong gatewas private key pem and public key pem
     """
+    db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     g_private_key_pem = "invalid_private_key_pem"
@@ -497,7 +498,7 @@ async def test_vote_valid_candidates():
     """
     Vote with zero candidates is still valid vote
     """
-    db = connect_to_mongo()
+    db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
@@ -535,7 +536,7 @@ async def test_vote_valid_party_id():
     """
     Vote with no party id is still valid vote
     """
-    db = connect_to_mongo()
+    db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
 
     polling_place_id = 0
