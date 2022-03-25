@@ -230,6 +230,9 @@ async def seed_votes(number_of_votes: int):
     # parties_probabilities = [ random.randint(10, 100) for _ in parties ]
     parties_probabilities = [28, 30, 120, 22, 72, 26, 17, 81, 58, 28, 48, 200, 73, 15, 69, 49, 27, 86, 39, 13, 150, 73, 23, 80, 43]
 
+    # TODO spravit condition probabilies
+    # polling_place_probabilities
+
     votes_to_be_inserted = []
     max_id = await get_max_id("votes")
     for _id in range(number_of_votes):

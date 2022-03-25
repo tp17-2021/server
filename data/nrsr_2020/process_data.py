@@ -65,10 +65,11 @@ def main():
     df = df.rename(columns={
         "Číslo politického subjektu": "party_number",
         "Názov politického subjektu": "name",
-        "Oficiálna skratka politického subjektu": "abbreviation",
+        "Oficiálna skratka politického subjektu": "official_abbr",
         "Poznámka": "note",
         "Počet kandidátov": "candidates_count",
-        "Farba": "color"
+        "Farba": "color",
+        "Skratka": "abbr"
     })
 
     df = df.drop(['candidates_count', 'note'], axis=1)
