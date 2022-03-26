@@ -27,14 +27,15 @@ async def test_get_party_by_id():
     db = connect_to_db()
 
     party = await db.parties.find_one({"_id": 0})
-
+    
     assert party == {
         "_id": 0,
         "party_number": 1,
         "name": "Slovenská ľudová strana Andreja Hlinku",
-        "abbreviation": "Slovenská ľudová strana (SĽS)",
+        "official_abbr": "Slovenská ľudová strana (SĽS)",
         "image": "slovenska-ludova-strana-andreja-hlinku.png",
-        "color": "#204198"
+        "color": "#204198",
+        "abbr": "SĽS"
     }
 
 

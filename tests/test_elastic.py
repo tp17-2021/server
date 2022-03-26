@@ -159,7 +159,15 @@ async def test_elestic_statistics():
     # Get results by locality (Custom region)
     response = client.post(
         "/elastic/get-results-by-locality", headers=headers, json={
-            "filter_by": "region_name",
-            "filter_value": "Prešovský kraj"
+            "filter_by": "region_code",
+            "filter_value": 1
+        })
+    assert response.status_code == 200
+
+    # Get results by locality (Custom county)
+    response = client.post(
+        "/elastic/get-results-by-locality", headers=headers, json={
+            "filter_by": "county_code",
+            "filter_value": 101
         })
     assert response.status_code == 200
