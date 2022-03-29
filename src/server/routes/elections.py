@@ -355,6 +355,16 @@ async def get_voting_data():
         "election_date": {
             "sk": "30.11.2021",
             "en": "30.11.2021",
+        },
+        "contact" : {
+            "title" : {
+                "sk" : "Volebná centrála Bratislava",
+                "en" : "Volebná centrála Bratislava"
+            },
+            "contact_person" : "Jožko Mrkvička",
+            "address" : "Volebná 1, 853 01 Bratislava",
+            "phone" : "+421 910 123 456",
+            "email" : "support@volby.sk"
         }
     }
 
@@ -368,7 +378,7 @@ async def get_voting_data():
                     party_with_candidates["image_bytes"] = image_bytes
 
     content = {
-        "polling_places": polling_places,
+        # "polling_places": polling_places,
         "parties": parties_with_candidates,
         "key_pairs": key_pairs,
         "texts": texts,

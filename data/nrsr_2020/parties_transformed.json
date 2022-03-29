@@ -2,176 +2,201 @@
     {
         "party_number": 1,
         "name": "Slovenská ľudová strana Andreja Hlinku",
-        "abbreviation": "Slovenská ľudová strana (SĽS)",
+        "official_abbr": "Slovenská ľudová strana (SĽS)",
         "image": "slovenska-ludova-strana-andreja-hlinku.png",
-        "color": "#204198"
+        "color": "#204198",
+        "abbr": "SĽS"
     },
     {
         "party_number": 2,
         "name": "DOBRÁ VOĽBA",
-        "abbreviation": "DOBRÁ VOĽBA",
+        "official_abbr": "DOBRÁ VOĽBA",
         "image": "dobra-volba.png",
-        "color": "#FF0000"
+        "color": "#FF0000",
+        "abbr": "DOBRÁ VOĽBA"
     },
     {
         "party_number": 3,
         "name": "Sloboda a Solidarita",
-        "abbreviation": "SaS",
+        "official_abbr": "SaS",
         "image": "sloboda-a-solidarita.png",
-        "color": "#96C82D"
+        "color": "#96C82D",
+        "abbr": "SAS"
     },
     {
         "party_number": 4,
         "name": "SME RODINA",
-        "abbreviation": "SME RODINA",
+        "official_abbr": "SME RODINA",
         "image": "sme-rodina.png",
-        "color": "#0F4D92"
+        "color": "#0F4D92",
+        "abbr": "SME RODINA"
     },
     {
         "party_number": 5,
         "name": "Slovenské Hnutie Obrody",
-        "abbreviation": "Slovenské Hnutie Obrody",
+        "official_abbr": "Slovenské Hnutie Obrody",
         "image": "slovenske-hnutie-obrody.png",
-        "color": "#Fa2215"
+        "color": "#Fa2215",
+        "abbr": "SHO"
     },
     {
         "party_number": 6,
         "name": "ZA ĽUDÍ",
-        "abbreviation": "ZA ĽUDÍ",
+        "official_abbr": "ZA ĽUDÍ",
         "image": "za-ludi.png",
-        "color": "#FFCC00"
+        "color": "#FFCC00",
+        "abbr": "ZA ĽUDÍ"
     },
     {
         "party_number": 7,
         "name": "MÁME TOHO DOSŤ !",
-        "abbreviation": "MÁME TOHO DOSŤ !",
+        "official_abbr": "MÁME TOHO DOSŤ !",
         "image": "mame-toho-dost.png",
-        "color": "red"
+        "color": "red",
+        "abbr": "MÁME TOHO DOSŤ"
     },
     {
         "party_number": 8,
         "name": "Hlas pravice",
-        "abbreviation": "Hlas pravice",
+        "official_abbr": "Hlas pravice",
         "image": "hlas-pravice.png",
-        "color": "#376CB3"
+        "color": "#376CB3",
+        "abbr": "HLAS PRAV"
     },
     {
         "party_number": 9,
         "name": "Slovenská národná strana",
-        "abbreviation": "SNS",
+        "official_abbr": "SNS",
         "image": "slovenska-narodna-strana.png",
-        "color": "#062751"
+        "color": "#062751",
+        "abbr": "SNS"
     },
     {
         "party_number": 10,
         "name": "Demokratická strana",
-        "abbreviation": "DS",
+        "official_abbr": "DS",
         "image": "demokraticka-strana.png",
-        "color": "#00008B"
+        "color": "#00008B",
+        "abbr": "DS"
     },
     {
         "party_number": 11,
         "name": "OBYČAJNÍ ĽUDIA a nezávislé osobnosti (OĽANO), NOVA, Kresťanská únia (KÚ), ZMENA ZDOLA",
-        "abbreviation": "OĽANO-NOVA-KÚ-ZMENA ZDOLA",
+        "official_abbr": "OĽANO-NOVA-KÚ-ZMENA ZDOLA",
         "image": "obycajni-ludia-a-nezavisle-osobnosti.png",
-        "color": "#BED62F"
+        "color": "#BED62F",
+        "abbr": "OĽANO"
     },
     {
         "party_number": 12,
         "name": "Koalícia Progresívne Slovensko a SPOLU - občianska demokracia",
-        "abbreviation": "Koalícia Progresívne Slovensko a SPOLU - občianska demokracia",
+        "official_abbr": "Koalícia Progresívne Slovensko a SPOLU - občianska demokracia",
         "image": "progresivne-slovensko-a-spolu.png",
-        "color": "#015FB8"
+        "color": "#015FB8",
+        "abbr": "PS SPOLU"
     },
     {
         "party_number": 13,
         "name": "STAROSTOVIA A NEZÁVISLÍ KANDIDÁTI",
-        "abbreviation": "STAROSTOVIA A NEZÁVISLÍ KANDIDÁTI",
+        "official_abbr": "STAROSTOVIA A NEZÁVISLÍ KANDIDÁTI",
         "image": "starostovia-a-nezavisli-kandidati.png",
-        "color": "#5aa2D0"
+        "color": "#5aa2D0",
+        "abbr": "STANK"
     },
     {
         "party_number": 14,
         "name": "99 % - občiansky hlas",
-        "abbreviation": "99 % - občiansky hlas",
+        "official_abbr": "99 % - občiansky hlas",
         "image": "obciansky-hlas.png",
-        "color": "#A50020"
+        "color": "#A50020",
+        "abbr": 0.99
     },
     {
         "party_number": 15,
         "name": "Kresťanskodemokratické hnutie",
-        "abbreviation": "KDH",
+        "official_abbr": "KDH",
         "image": "krestanskodemokraticke-hnutie.png",
-        "color": "#00528c"
+        "color": "#00528c",
+        "abbr": "KDH"
     },
     {
         "party_number": 16,
         "name": "Slovenská liga",
-        "abbreviation": "Slovenská liga",
+        "official_abbr": "Slovenská liga",
         "image": "slovenska-liga.png",
-        "color": "#EE1D23"
+        "color": "#EE1D23",
+        "abbr": "SLOV. LIGA"
     },
     {
         "party_number": 17,
         "name": "VLASŤ",
-        "abbreviation": "VLASŤ",
+        "official_abbr": "VLASŤ",
         "image": "vlast.png",
-        "color": "#014667"
+        "color": "#014667",
+        "abbr": "VLASŤ"
     },
     {
         "party_number": 18,
         "name": "MOST - HÍD",
-        "abbreviation": "MOST - HÍD",
+        "official_abbr": "MOST - HÍD",
         "image": "most-hid.png",
-        "color": "#FF8C00"
+        "color": "#FF8C00",
+        "abbr": "MOST-HID"
     },
     {
         "party_number": 19,
         "name": "SMER - sociálna demokracia",
-        "abbreviation": "SMER - SD",
+        "official_abbr": "SMER - SD",
         "image": "smer-socialna-demokracia.png",
-        "color": "#A70202"
+        "color": "#A70202",
+        "abbr": "SMER-SD"
     },
     {
         "party_number": 20,
         "name": "SOLIDARITA - Hnutie pracujúcej chudoby",
-        "abbreviation": "SOLIDARITA - Hnutie pracujúcej chudoby",
+        "official_abbr": "SOLIDARITA - Hnutie pracujúcej chudoby",
         "image": "solidarita-hnutie-pracujucej-chudoby.png",
-        "color": "#B61737"
+        "color": "#B61737",
+        "abbr": "SOLIDARITA"
     },
     {
         "party_number": 21,
         "name": "HLAS ĽUDU",
-        "abbreviation": "HLAS ĽUDU",
+        "official_abbr": "HLAS ĽUDU",
         "image": "hlas-ludu.png",
-        "color": "#316F98"
+        "color": "#316F98",
+        "abbr": "HLAS ĽUDU"
     },
     {
         "party_number": 22,
         "name": "Magyar Közösségi Összefogás - Maďarská komunitná spolupatričnosť",
-        "abbreviation": "Magyar Közösségi Összefogás - Maďarská komunitná spolupatričnosť",
+        "official_abbr": "Magyar Közösségi Összefogás - Maďarská komunitná spolupatričnosť",
         "image": "madarska-komunitna-spolupatricnost.png",
-        "color": "#009910"
+        "color": "#009910",
+        "abbr": "MKO-MKS"
     },
     {
         "party_number": 23,
         "name": "Práca slovenského národa",
-        "abbreviation": "PSN",
+        "official_abbr": "PSN",
         "image": "praca-slovenskeho-naroda.png",
-        "color": "#DE1F26"
+        "color": "#DE1F26",
+        "abbr": "PSN"
     },
     {
         "party_number": 24,
         "name": "Kotlebovci - Ľudová strana Naše Slovensko",
-        "abbreviation": "ĽS Naše Slovensko",
+        "official_abbr": "ĽS Naše Slovensko",
         "image": "kotlebovci-ludova-strana-nase-slovensko.png",
-        "color": "#00521E"
+        "color": "#00521E",
+        "abbr": "ĽSNS"
     },
     {
         "party_number": 25,
         "name": "Socialisti.sk",
-        "abbreviation": "Socialisti.sk",
+        "official_abbr": "Socialisti.sk",
         "image": "socialisti.png",
-        "color": "#E0433F"
+        "color": "#E0433F",
+        "abbr": "SOCIALISTI"
     }
 ]

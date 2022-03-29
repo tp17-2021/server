@@ -44,7 +44,8 @@ class Party(BaseModel):
     id: int = Field(..., alias='_id')
     party_number: int
     name: str
-    abbreviation: str
+    official_abbr: str
+    abbr: str
     image: str
     image_bytes: str
     color: str
