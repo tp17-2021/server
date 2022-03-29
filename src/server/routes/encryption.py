@@ -73,7 +73,28 @@ async def test_encrypt_vote(request: schemas.VoteToBeEncrypted):
 
 @router.post("/test-decrypt-vote", response_model=schemas.Vote, status_code=status.HTTP_200_OK)
 async def test_decrypt_vote(request: schemas.VoteToBeDecrypted):
-    encrypted_vote = dict(request.encrypted_vote)
+    encrypted_vote = request.encrypted_vote
+    private_key_pem = request.private_key_pem
+    g_public_key_pem = request.g_public_key_pem
+
+    vote = electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
+    return vote
+
+
+@router.post("/test-encrypt-commission-paper")
+async def test_encrypt_vote(request: schemas.CommissionPaperToBeEncrypted):
+    vote = request.vote
+    vote = dict(vote)
+    g_private_key_pem = request.g_private_key_pem
+    public_key_pem = request.public_key_pem
+        
+    encrypted_vote = electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
+    return encrypted_vote
+
+
+@router.post("/test-decrypt-commission-paper")
+async def test_decrypt_vote(request: schemas.CommissionPaperToBeDecrypted):
+    encrypted_vote = request.encrypted_vote
     private_key_pem = request.private_key_pem
     g_public_key_pem = request.g_public_key_pem
 

@@ -83,6 +83,7 @@ async def import_data():
     DB.polling_places.drop()
     DB.votes.drop()
     DB.key_pairs.drop()
+    DB.commission_papers.drop()
 
     parties = await load_json(config.PARTIES_JSON)
     for _id, party in enumerate(parties):
@@ -146,6 +147,7 @@ async def seed_data(number_of_votes: int):
     DB.polling_places.drop()
     DB.votes.drop()
     DB.key_pairs.drop()
+    DB.commission_papers.drop()
 
     parties = await load_json(config.PARTIES_JSON)
     for _id, party in enumerate(parties):
@@ -267,5 +269,22 @@ async def seed_votes(number_of_votes: int):
     content = {
         "status": "success",
         "message": f"{number_of_votes} votes successfully seeded"
+    }
+    return content
+
+@router.post("/commission-paper", response_model=schemas.Message, status_code=status.HTTP_200_OK)
+async def upload_commission_paper(request: schemas.CommissionPaperToBeDecrypted):
+    encrypted_vote = request.encrypted_vote
+    private_key_pem = request.private_key_pem
+    g_public_key_pem = request.g_public_key_pem
+
+    commission_paper = electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
+
+    DB  = await get_database()
+    await DB.commission_papers.insert_one(commission_paper)
+
+    content = {
+        "status": "success",
+        "message": "Commission paper was successfully inserted into database"
     }
     return content
