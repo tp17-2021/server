@@ -238,11 +238,13 @@ class Commission(BaseModel):
 
 
 class CommissionPaperToBeDecrypted(BaseModel):
+    date_and_time: str
     polling_place_id: int
     encrypted_commission_paper: VoteEncrypted
     class Config:
         schema_extra = {
             "example": {
+                "date_and_time": "29.03.2022 17:24:03",
                 "polling_place_id": 0,
                 "encrypted_vote": {
                     "encrypted_message": "yFke67UNBxjChUY2FqnKlhMBtz0TRe3JSg3VLfJUtTTFMXRj9B02fkNn/OX7EfplghBVESSOi1WmUgbcHO4IJpFgAB09kB4x8ZfXu0iVRESfMROZ7T686PBiaZDxirgqg3IRRFWcfXMq2ZSrMobGBXc/OMAfllEGaxohtkyC/oq7kYsZXH59QhKZ8xs+bxn9U7ITiyoYmrtyGisa8vhwaYZCeLpMxGbFRtAyOfeT5kUfq1Vk4lAIbLtuI3RPqRlQLLScV9I9hhiQeBAA8u4oeeqLmVnywOAdSuNBJWRgyW9GDCKuw6ni1DPuJKt0WGuoUlb7e4gb/SWYhIFPUil/iya956MGmO/tFbvh8OsijcgGZuc5MWV63/ATUhjwnV16U/5edYIKuditHw+Iswe1bXZwNouk9rvgK+iuPY1ICCYOHTWKeG/De4RT+C2dO7fm4FS4ibfVyFQgM8FsS+Ix3WNal51L3bQw4Szvz02ALeGWcWkSHR6svFsIKe7JSGrmK+fe9AZM9qt0vp+XEi4B2uu9be+C8w/xicotsw==",

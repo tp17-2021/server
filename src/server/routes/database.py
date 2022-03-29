@@ -278,6 +278,7 @@ async def seed_votes(number_of_votes: int):
 
 @router.post("/commission-paper", response_model=schemas.Message, status_code=status.HTTP_200_OK)
 async def upload_commission_paper(request: schemas.CommissionPaperToBeDecrypted):
+    date_and_time = request.date_and_time
     polling_place_id = request.polling_place_id
     encrypted_commission_paper = request.encrypted_commission_paper
 
@@ -288,6 +289,7 @@ async def upload_commission_paper(request: schemas.CommissionPaperToBeDecrypted)
     g_public_key_pem = key_pair["g_public_key_pem"]
 
     commission_paper = electiersa.decrypt_vote(encrypted_commission_paper, private_key_pem, g_public_key_pem)
+    commission_paper["date_and_time"] = date_and_time
     commission_paper["polling_place_id"] = polling_place_id
 
     DB  = await get_database()
