@@ -21,7 +21,7 @@ import os
 from pprint import pprint
 
 import traceback
-from fastapi import status, APIRouter
+from fastapi import status, APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from src.server import config
@@ -448,6 +448,13 @@ async def get_gateway_config(polling_place_id: int):
 
     content = await get_config_file(
         mode="gateway", polling_place_id=polling_place_id)
+
+    if(content['polling_place'] == None):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Polling place not found"
+        )
+
     return content
 
 
