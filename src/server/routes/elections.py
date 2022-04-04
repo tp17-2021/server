@@ -1,3 +1,4 @@
+from asyncore import poll
 import re
 from mdutils.mdutils import MdUtils
 from time import gmtime, strftime
@@ -277,13 +278,13 @@ async def get_config_file(mode="all", polling_place_id=None):
     polling_place = None
     polling_places = None
 
-    # TODO
-    # if mode == "gateway" and polling_place_id:
-    # polling_place = await DB.polling_places.find_one({"_id": polling_place_id}, {"_id": 0})
+    if mode == "gateway" and polling_place_id is not None:
+        polling_place = await DB.polling_places.find_one({"_id": polling_place_id}, {"_id": 0})
 
     if mode == "all":
         polling_places = [polling_place async for polling_place in DB.polling_places.find()]
 
+    print(polling_place, polling_places, flush=True)
     parties_with_candidates = await get_parties_with_candidates()
     key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
 
@@ -444,7 +445,8 @@ async def get_gateway_config(polling_place_id: int):
     """
     Download gateway config data json using command curl http://localhost:8222/elections/gateway-config > config.json
     """
-    content = get_config_file(
+
+    content = await get_config_file(
         mode="gateway", polling_place_id=polling_place_id)
     return content
 
