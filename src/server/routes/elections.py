@@ -271,14 +271,19 @@ async def vote(request: schemas.VotesEncrypted):
     return content
 
 
-@router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
-async def get_voting_data():
-    """
-    Downlaod voting data json using command curl http://localhost:8222/elections/voting-data > config.json
-    """
+async def get_config_file(mode="all", polling_place_id=None):
     DB = await get_database()
 
-    polling_places = [polling_place async for polling_place in DB.polling_places.find()]
+    polling_place = None
+    polling_places = None
+
+    # TODO
+    # if mode == "gateway" and polling_place_id:
+    # polling_place = await DB.polling_places.find_one({"_id": polling_place_id}, {"_id": 0})
+
+    if mode == "all":
+        polling_places = [polling_place async for polling_place in DB.polling_places.find()]
+
     parties_with_candidates = await get_parties_with_candidates()
     key_pairs = [key_pair async for key_pair in DB.key_pairs.find()]
 
@@ -290,7 +295,13 @@ async def get_voting_data():
                     '$first': '$region_name'
                 }
             }
-        }, {
+        },
+        {
+            '$sort': {
+                '_id': 1
+            }
+        },
+        {
             '$project': {
                 'code': '$_id',
                 'name': '$name',
@@ -305,12 +316,22 @@ async def get_voting_data():
                 '_id': '$county_code',
                 'name': {
                     '$first': '$county_name'
+                },
+                'region_code': {
+                    '$first': '$region_code'
                 }
             }
-        }, {
+        },
+        {
+            '$sort': {
+                '_id': 1
+            }
+        },
+        {
             '$project': {
                 'code': '$_id',
                 'name': '$name',
+                'region_code' : '$region_code',
                 '_id': 0
             }
         }
@@ -322,12 +343,25 @@ async def get_voting_data():
                 '_id': '$municipality_code',
                 'name': {
                     '$first': '$municipality_name'
+                },
+                'region_code': {
+                    '$first': '$region_code'
+                },
+                'county_code': {
+                    '$first': '$county_code'
                 }
+            }
+        },
+        {
+            '$sort': {
+                'name': 1
             }
         }, {
             '$project': {
                 'code': '$_id',
                 'name': '$name',
+                'region_code' : '$region_code',
+                'county_code' : '$county_code',
                 '_id': 0
             }
         }
@@ -356,15 +390,15 @@ async def get_voting_data():
             "sk": "30.11.2021",
             "en": "30.11.2021",
         },
-        "contact" : {
-            "title" : {
-                "sk" : "Volebná centrála Bratislava",
-                "en" : "Volebná centrála Bratislava"
+        "contact": {
+            "title": {
+                "sk": "Volebná centrála Bratislava",
+                "en": "Volebná centrála Bratislava"
             },
-            "contact_person" : "Jožko Mrkvička",
-            "address" : "Volebná 1, 853 01 Bratislava",
-            "phone" : "+421 910 123 456",
-            "email" : "support@volby.sk"
+            "contact_person": "Jožko Mrkvička",
+            "address": "Volebná 1, 853 01 Bratislava",
+            "phone": "+421 910 123 456",
+            "email": "support@volby.sk"
         }
     }
 
@@ -377,19 +411,42 @@ async def get_voting_data():
                     image_bytes = base64.b64encode(file.read())
                     party_with_candidates["image_bytes"] = image_bytes
 
-    content = {
-        # "polling_places": polling_places,
-        "parties": parties_with_candidates,
-        "key_pairs": key_pairs,
-        "texts": texts,
-        "regions": regions,
-        "counties": counties,
-        "municipalities": municipalitites
-    }
+    if mode == 'gateway':
+        return {
+            "polling_place": polling_place,
+            "parties": parties_with_candidates,
+            "key_pairs": key_pairs,
+            "texts": texts
+        }
+    else:
+        return {
+            # "polling_places": polling_places,
+            "parties": parties_with_candidates,
+            "key_pairs": key_pairs,
+            "texts": texts,
+            "regions": regions,
+            "counties": counties,
+            "municipalities": municipalitites
+        }
+
+# @router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
+@router.get("/voting-data", status_code=status.HTTP_200_OK)
+async def get_voting_data():
+    """
+    Download voting data json (used on statistics FE) using command curl http://localhost:8222/elections/voting-data > config.json
+    """
+    content = await get_config_file()
     return content
 
 
-
+@router.get("/gateway-config", status_code=status.HTTP_200_OK)
+async def get_gateway_config(polling_place_id: int):
+    """
+    Download gateway config data json using command curl http://localhost:8222/elections/gateway-config > config.json
+    """
+    content = get_config_file(
+        mode="gateway", polling_place_id=polling_place_id)
+    return content
 
 
 def replace_header_polling_place(region_code: int, county_code: int, municipality_code: int, polling_place_code: int) -> str:
@@ -428,11 +485,11 @@ def load_config(polling_place_id: int):
 
 
 async def get_party_votes(parties, polling_place):
-    DB  = await get_database()
+    DB = await get_database()
 
     pipeline = [
-        {"$group" : {"_id":"$party_id", "count":{"$sum":1}}},
-        {"$sort":{"_id":1}}
+        {"$group": {"_id": "$party_id", "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
     ]
 
     voted_parties = {}
@@ -441,7 +498,7 @@ async def get_party_votes(parties, polling_place):
         voted_parties[result["_id"]] = result["count"]
 
     parties_tmp = parties.copy()
-    for party_id in parties_tmp:        
+    for party_id in parties_tmp:
         if party_id in voted_parties:
             votes_count = voted_parties[party_id]
         else:
@@ -450,18 +507,19 @@ async def get_party_votes(parties, polling_place):
         parties_tmp[party_id] += f"\t{votes_count}"
 
         registered_voters_count = polling_place["registered_voters_count"]
-        votes_percentage = round((votes_count / registered_voters_count) * 100, 2)
+        votes_percentage = round(
+            (votes_count / registered_voters_count) * 100, 2)
         parties_tmp[party_id] += f"\t{votes_percentage}"
 
     return parties_tmp
 
 
 async def get_candidate_votes(parties, candidates, polling_place):
-    DB  = await get_database()
+    DB = await get_database()
 
     pipeline = [
         {"$unwind": "$candidate_ids"},
-        {"$group" : {"_id":"$candidate_ids", "count":{"$sum":1}}}
+        {"$group": {"_id": "$candidate_ids", "count": {"$sum": 1}}}
     ]
 
     voted_candidates = {}
@@ -479,7 +537,8 @@ async def get_candidate_votes(parties, candidates, polling_place):
             candidate["votes_count"] = 0
 
         registered_voters_count = polling_place["registered_voters_count"]
-        candidate_votes_percentage = round((candidate["votes_count"] / registered_voters_count) * 100, 2)
+        candidate_votes_percentage = round(
+            (candidate["votes_count"] / registered_voters_count) * 100, 2)
         candidate["votes_percentage"] = candidate_votes_percentage
 
         party_name = parties[candidates[candidate_id]["party_number"]-1]
@@ -503,7 +562,7 @@ def replace_header_candidates(candidates) -> str:
         return text
 
 
-def replace_header_president(president) -> str:    
+def replace_header_president(president) -> str:
     table_row = f'<tr><td style="text-align:left">{president.name}</td><td>{"áno" if president.agree else "nie"}</td></tr>'
 
     with open("src/server/routes/table_president.html", "r", encoding="utf-8") as file:
@@ -512,7 +571,7 @@ def replace_header_president(president) -> str:
         return text
 
 
-def replace_header_members(members) -> str:    
+def replace_header_members(members) -> str:
     table_rows = []
     for member in members:
         tr = f'<tr><td style="text-align:left">{member.name}</td><td>{"áno" if member.agree else "nie"}</td></tr>'
@@ -522,6 +581,7 @@ def replace_header_members(members) -> str:
         text = file.read()
         text = re.sub(r"table_rows", "".join(table_rows), text)
         return text
+
 
 @router.post("/zapisnica", status_code=status.HTTP_200_OK)
 async def get_zapisnica(request: schemas.Commission):
@@ -534,9 +594,11 @@ async def get_zapisnica(request: schemas.Commission):
     date_and_time = time.strftime("%d.%m.%Y %H:%M:%S")
     registered_voters_count = polling_place["registered_voters_count"]
     participated_voters_count = await DB.votes.count_documents({})
-    participated_voters_percentage = round(participated_voters_count / registered_voters_count, 2)
+    participated_voters_percentage = round(
+        participated_voters_count / registered_voters_count, 2)
 
-    table_polling_place = replace_header_polling_place(str(polling_place["region_code"]), str(polling_place["county_code"]), str(polling_place["municipality_code"]), str(polling_place["polling_place_number"]))
+    table_polling_place = replace_header_polling_place(str(polling_place["region_code"]), str(
+        polling_place["county_code"]), str(polling_place["municipality_code"]), str(polling_place["polling_place_number"]))
 
     data = []
     result = await get_party_votes(parties, polling_place)
@@ -549,7 +611,7 @@ async def get_zapisnica(request: schemas.Commission):
             "votes_percentage": votes_percentage
         })
     table_parties = replace_header_parties(data)
-    
+
     table_candidates = ""
     result = await get_candidate_votes(parties, candidates, polling_place)
     for party_name in result:
@@ -571,7 +633,7 @@ async def get_zapisnica(request: schemas.Commission):
 
         c = replace_header_candidates(data)
         table_candidates += f"{c}\n"
-        break # delete this line when done
+        break  # delete this line when done
 
     table_president = replace_header_president(request.president)
     table_members = replace_header_members(request.participated_members)
@@ -580,13 +642,17 @@ async def get_zapisnica(request: schemas.Commission):
 
     with open("src/server/routes/template.md", "r", encoding="utf-8") as file:
         text = file.read()
-        text = re.sub(r"REGISTERED_VOTERS_COUNT", str(registered_voters_count), text)
-        text = re.sub(r"PARTICIPATED_VOTERS_COUNT", str(participated_voters_count), text)
-        text = re.sub(r"PARTICIPATED_VOTERS_PERCENTAGE", format(participated_voters_percentage, ".2f"), text)
+        text = re.sub(r"REGISTERED_VOTERS_COUNT",
+                      str(registered_voters_count), text)
+        text = re.sub(r"PARTICIPATED_VOTERS_COUNT",
+                      str(participated_voters_count), text)
+        text = re.sub(r"PARTICIPATED_VOTERS_PERCENTAGE", format(
+            participated_voters_percentage, ".2f"), text)
         text = re.sub(r"TABLE_POLLING_PLACE", table_polling_place, text)
         text = re.sub(r"TABLE_PARTIES", table_parties, text)
         text = re.sub(r"TABLE_CANDIDATES", table_candidates, text)
-        text = re.sub(r"PARTICIPATED_MEMBERS_COUNT", str(len(request.participated_members)+1), text)
+        text = re.sub(r"PARTICIPATED_MEMBERS_COUNT", str(
+            len(request.participated_members)+1), text)
         text = re.sub(r"TABLE_PRESIDENT", table_president, text)
         text = re.sub(r"TABLE_MEMBERS", table_members, text)
         text = re.sub(r"DATE_AND_TIME", date_and_time, text)
