@@ -1,4 +1,5 @@
 # General modules
+from datetime import datetime
 import json
 from bson import Code
 import traceback
@@ -289,7 +290,7 @@ async def upload_commission_paper(request: schemas.CommissionPaperToBeDecrypted)
     g_public_key_pem = key_pair["g_public_key_pem"]
 
     commission_paper = electiersa.decrypt_vote(encrypted_commission_paper, private_key_pem, g_public_key_pem)
-    commission_paper["date_and_time"] = date_and_time
+    commission_paper["date_and_time"] = datetime.now()
     commission_paper["polling_place_id"] = polling_place_id
 
     DB  = await get_database()
