@@ -101,6 +101,13 @@ class VotingData(BaseModel):
     texts: Texts
 
 
+class GatewayConfig(BaseModel):
+    polling_place: PollingPlace
+    parties: List[Party] = []
+    key_pairs: List[KeyPair] = []
+    texts: Texts
+
+
 class Vote(BaseModel):
     token: str
     party_id: Optional[int] = None
@@ -176,8 +183,10 @@ class VoteToBeDecrypted(BaseModel):
 class VoteDecrypted(BaseModel):
     vote: Vote
 
+
 class StatisticsPerPartyRequest(BaseModel):
     party: Optional[str] = None
+
     class Config:
         schema_extra = {
             "example": {
@@ -185,32 +194,39 @@ class StatisticsPerPartyRequest(BaseModel):
             }
         }
 
+
 class StatisticsPerLocalityRequest(BaseModel):
     filter_by: str
     filter_value: Optional[int] = None
 
     @validator('filter_by')
     def group_by_only_plausible_localities(cls, v):
-        possible_values = ['region_code', 'county_code', 'municipality_code', 'administrative_area_code']
+        possible_values = ['region_code', 'county_code',
+                           'municipality_code', 'administrative_area_code']
         if v not in possible_values:
-            raise ValueError('Invalid filter by value. Possible valuies: ' + ', '.join(possible_values))
+            raise ValueError(
+                'Invalid filter by value. Possible valuies: ' + ', '.join(possible_values))
         return v
+
     class Config:
         schema_extra = {
             "example": {
                 "filter_by": "region_code",
-                "filter_value" : 1
+                "filter_value": 1
             }
         }
+
 
 class Member(BaseModel):
     name: str
     agree: bool
 
+
 class Commission(BaseModel):
     polling_place_id: int
     participated_members: List[Member] = None
     president: Member
+
     class Config:
         schema_extra = {
             "example": {
@@ -240,6 +256,7 @@ class CommissionPaperToBeDecrypted(BaseModel):
     date_and_time: str
     polling_place_id: int
     encrypted_commission_paper: VoteEncrypted
+
     class Config:
         schema_extra = {
             "example": {
