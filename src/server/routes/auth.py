@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import requests
+import os
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -18,11 +19,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 10
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
+admin_username = os.environ['ADMIN_USERNAME'] if 'ADMIN_USERNAME' in os.environ else 'admin'
+admin_password = pwd_context.hash(os.environ['ADMIN_USERNAME']) if 'ADMIN_USERNAME' in os.environ else pwd_context.hash('admin')
 users_dictionary = {
-    "admin": {
-        "username": "admin",
-        "full_name": "admin",
-        "hashed_password": pwd_context.hash('0000'),
+    admin_username : {
+        "username":  admin_username,
+        "hashed_password":  admin_password,
     }
 }
 
@@ -48,14 +50,15 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
+def get_user(username: str):
+    global users_dictionary
+    if username in users_dictionary:
+        user_dict = users_dictionary[username]
         return UserInDB(**user_dict)
 
 
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
+def authenticate_user(username: str, password: str):
+    user = get_user(username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -88,7 +91,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = get_user(users_dictionary, username=token_data.username)
+    user = get_user(username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -111,7 +114,7 @@ router = APIRouter(
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(users_dictionary, form_data.username, form_data.password)
+    user = authenticate_user(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

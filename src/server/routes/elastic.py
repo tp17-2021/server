@@ -14,16 +14,20 @@ import os
 from pprint import pprint
 
 import traceback
-from fastapi import status, APIRouter
+from fastapi import status, APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
 from src.server import config as c
 from src.server import schemas
 from src.server.database import DB, get_database
 from src.server.database import get_parties_with_candidates, get_max_id
+from src.server.routes.auth import *
 import asyncio
 
 from elasticsearch import Elasticsearch, helpers
+
+# Results status
+results_published = False
 
 # Main elastic search connction
 ES = Elasticsearch(hosts=[{"scheme": "http", 'host': os.environ['ELASTIC_HOST'], 'port': int(
@@ -92,6 +96,33 @@ def bulk_insert_documents(index, data):
     print(
         f"Inserted {count} documents. Took {round(time.time() - start_time,3)} s")
     return res
+
+
+def check_results_published():
+    global results_published
+    return results_published == True
+
+@router.post("/results/publish")
+def results_publish(current_user: User = Depends(get_current_active_user)):
+    global results_published
+    results_published = True
+    content = {
+        "status": "success",
+        "message": "Voting results published"
+    }
+
+    return content
+
+@router.post("/results/hide")
+def results_publish(current_user: User = Depends(get_current_active_user)):
+    global results_published
+    results_published = False
+    content = {
+        "status": "success",
+        "message": "Voting results hidden"
+    }
+
+    return content
 
 
 @router.post("/setup-elastic-vote-index", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
@@ -346,6 +377,10 @@ async def synchronize_votes_ES(number=c.ES_SYNCHRONIZATION_BATCH_SIZE):
 
 @router.post("/get-parties-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+
     DB = await get_database()
 
     request_body = {
@@ -536,6 +571,10 @@ def calcualte_winning_parties_and_seats(transformed_data):
 
 @router.post("/get-party-candidate-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_parties_with_candidates_results(request: schemas.StatisticsPerPartyRequest):
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+
     DB = await get_database()
 
     request_body = {
@@ -607,6 +646,10 @@ async def get_parties_with_candidates_results(request: schemas.StatisticsPerPart
 
 @router.post("/get-candidates-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_candidates_results():
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+
     DB = await get_database()
 
     request_body = {
@@ -648,6 +691,10 @@ async def get_candidates_results():
 
 
 async def get_eligible_voters_per_locality(filter_by=None):
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+
     DB = await get_database()
 
     # if no filter is provided, then return sum for all polling places
@@ -676,6 +723,10 @@ async def get_resilts_by_locality_mongo():
     """
     Used to provide benchmark for ES vs Mongo aggregation queries
     """
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+
     DB = await get_database()
     results = [res async for res in DB.votes.aggregate([
         {
@@ -702,6 +753,10 @@ async def get_resilts_by_locality_mongo():
 async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest):
 
     DB = await get_database()
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+
     calculate_candidates_aggs = True if request.filter_value else False
     print("calculate_candidates_aggs", calculate_candidates_aggs)
 
@@ -826,6 +881,10 @@ async def get_parties_and_candidates_lookup():
 
 @ router.get("/elections-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_elections_status():
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+
     DB = await get_database()
 
     registered_voters = (await get_eligible_voters_per_locality())['']

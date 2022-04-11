@@ -22,6 +22,8 @@ services:
       - ELASTIC_HOST=electie_es_01
       - ELASTIC_PORT=9200
       - ROOT_PATH=/server
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
 
   server-db:
     # use existing mongo image from dockerhub
