@@ -123,17 +123,20 @@ async def validate_party_and_candidates(vote):
 
 
 async def validate_tokens(tokens):
+    content = {
+        "status": "success",
+        "message": "Tokens were successfully validated",
+    }
+
+    if 'ACCEPT_TOKEN_VALID' in os.environ and os.environ['ACCEPT_TOKEN_VALID'] == '1':
+        return content
+
     if len(set(tokens)) != len(tokens):
         content = {
             "status": "failure",
             "message": "Duplicate tokens in the batch",
         }
-        return content
 
-    content = {
-        "status": "success",
-        "message": "Tokens were successfully validated",
-    }
     return content
 
 
@@ -145,10 +148,7 @@ async def validate_token_with_polling_place_id(token, polling_place_id):
         "message": "Token was successfully validated",
     }
 
-    if  'ACCEPT_TOKEN_VALID' in os.environ\
-        and os.environ['ACCEPT_TOKEN_VALID'] == '1'\
-        and token == "valid"\
-    :
+    if 'ACCEPT_TOKEN_VALID' in os.environ and os.environ['ACCEPT_TOKEN_VALID'] == '1' and token == "valid":
         return content
 
     if await DB.votes.count_documents({"token": token, "polling_place_id": polling_place_id}) != 0:
