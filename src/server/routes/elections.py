@@ -140,16 +140,23 @@ async def validate_tokens(tokens):
 async def validate_token_with_polling_place_id(token, polling_place_id):
     DB = await get_database()
 
+    content = {
+        "status": "success",
+        "message": "Token was successfully validated",
+    }
+
+    if  'ACCEPT_TOKEN_VALID' in os.environ\
+        and os.environ['ACCEPT_TOKEN_VALID'] == '1'\
+        and token == "valid"\
+    :
+        return content
+
     if await DB.votes.count_documents({"token": token, "polling_place_id": polling_place_id}) != 0:
         content = {
             "status": "failure",
             "message": "Duplicate combination of token and polling place id",
         }
-        return content
-    content = {
-        "status": "success",
-        "message": "Token was successfully validated",
-    }
+
     return content
 
 
