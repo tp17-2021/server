@@ -21,7 +21,7 @@ services:
       - ELASTIC_HOST=electie_test_es_01
       - ELASTIC_PORT=9200
       - ROOT_PATH=
-      - ACCEPT_TOKEN_VALID=1
+      - ACCEPT_TOKEN_VALID=0
 
   server-db:
     # use existing mongo image from dockerhub
