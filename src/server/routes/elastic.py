@@ -692,9 +692,6 @@ async def get_candidates_results():
 
 async def get_eligible_voters_per_locality(filter_by=None):
 
-    if(not check_results_published()):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
-
     DB = await get_database()
 
     # if no filter is provided, then return sum for all polling places
@@ -809,7 +806,7 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
         request_body["query"] = {"term": {
             f"polling_place.{request.filter_by}": request.filter_value
         }}
-    pprint(request_body)
+    
     response = elasticsearch_curl(
         uri='/votes/_search',
         method='post',
@@ -883,16 +880,13 @@ async def get_parties_and_candidates_lookup():
 @router.get("/elections-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_elections_status(filter_by: str = "", filter_value: str = ""):
     
-    if(not check_results_published()):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+    # if(not check_results_published()):
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
 
     DB = await get_database()
 
     if(filter_by and filter_value):
-        print(f"filter by and value: {filter_by} {filter_value}")
         registered_voters = (await get_eligible_voters_per_locality(filter_by))[filter_value]
-        pprint(f"registered_voters with filer: {registered_voters}")
-        # votes_total_in_db = await DB.votes.count_documents({})
 
         # pipeline for votes in db in specific locality
         pipeline = [
@@ -934,7 +928,6 @@ async def get_elections_status(filter_by: str = "", filter_value: str = ""):
             }
         }] + pipeline
 
-        print("votes_total_in_db", votes_total_in_db)
         votes_synchronized_in_db = [res async for res in DB.votes.aggregate(pipeline_votes_per_locality_synced)]
         votes_synchronized_in_db = votes_synchronized_in_db[0]['votes']
 
@@ -959,7 +952,6 @@ async def get_elections_status(filter_by: str = "", filter_value: str = ""):
             method='post',
             json_data=elastic_request_data
         )
-        pprint(response)
         votes_synchronized_in_elastic = response["aggregations"]["agg_by_locality"]["buckets"][0]["doc_count"]
     else:
         registered_voters = (await get_eligible_voters_per_locality())['']
