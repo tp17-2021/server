@@ -90,7 +90,7 @@ async def test_seed_and_synchronize_elastic_vote():
     assert response['data']['votes_synchronized_in_elastic'] == 0
     assert response['data']['votes_synchronized_in_db'] == 0
 
-    # Seed 5 votes
+    # Seed N votes
     response = client.post(
         f"/database/seed-votes?number_of_votes={number_of_votes_to_seed}", headers=headers, json={})
     assert response.status_code == 200

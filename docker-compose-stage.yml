@@ -24,6 +24,7 @@ services:
       - ROOT_PATH=/server
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=admin
+      - ACCEPT_TOKEN_VALID=1
 
   server-db:
     # use existing mongo image from dockerhub

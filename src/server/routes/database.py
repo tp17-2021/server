@@ -79,12 +79,12 @@ async def load_json(path):
 async def import_data():
     DB  = await get_database()
     
-    DB.parties.drop()
-    DB.candidates.drop()
-    DB.polling_places.drop()
-    DB.votes.drop()
-    DB.key_pairs.drop()
-    DB.commission_papers.drop()
+    await DB.parties.drop()
+    await DB.candidates.drop()
+    await DB.polling_places.drop()
+    await DB.votes.drop()
+    await DB.key_pairs.drop()
+    await DB.commission_papers.drop()
 
     parties = await load_json(config.PARTIES_JSON)
     for _id, party in enumerate(parties):
