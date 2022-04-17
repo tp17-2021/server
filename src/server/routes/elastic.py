@@ -14,7 +14,7 @@ import os
 from pprint import pprint
 
 import traceback
-from fastapi import status, APIRouter, Depends, HTTPException
+from fastapi import status, APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from src.server import config as c
