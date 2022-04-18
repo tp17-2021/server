@@ -35,6 +35,16 @@ router = APIRouter(
     tags=["Elastic search"],
 )
 
+
+def check_elastic_is_running():
+    global ES
+    if not ES.ping():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Elastic is not available yet")
+        # return False
+        # raise ValueError("Connection failed")
+    return True
+
 # function for the cURL requests to Elastic search
 
 
@@ -94,6 +104,38 @@ def bulk_insert_documents(index, data):
     return res
 
 
+<<<<<<< Updated upstream
+=======
+def check_results_published():
+    global results_published
+    return results_published == True
+
+
+@router.post("/results/publish")
+def results_publish(current_user: User = Depends(get_current_active_user)):
+    global results_published
+    results_published = True
+    content = {
+        "status": "success",
+        "message": "Voting results published"
+    }
+
+    return content
+
+
+@router.post("/results/hide")
+def results_publish(current_user: User = Depends(get_current_active_user)):
+    global results_published
+    results_published = False
+    content = {
+        "status": "success",
+        "message": "Voting results hidden"
+    }
+
+    return content
+
+
+>>>>>>> Stashed changes
 @router.post("/setup-elastic-vote-index", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def setup_elastic_votes_index():
     """
@@ -346,6 +388,14 @@ async def synchronize_votes_ES(number=c.ES_SYNCHRONIZATION_BATCH_SIZE):
 
 @router.post("/get-parties-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
+    check_elastic_is_running()
+<<<<<<< Updated upstream
+=======
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Results are not published yet")
+>>>>>>> Stashed changes
+
     DB = await get_database()
 
     request_body = {
@@ -536,6 +586,14 @@ def calcualte_winning_parties_and_seats(transformed_data):
 
 @router.post("/get-party-candidate-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_parties_with_candidates_results(request: schemas.StatisticsPerPartyRequest):
+    check_elastic_is_running()
+<<<<<<< Updated upstream
+=======
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Results are not published yet")
+>>>>>>> Stashed changes
+
     DB = await get_database()
 
     request_body = {
@@ -607,6 +665,15 @@ async def get_parties_with_candidates_results(request: schemas.StatisticsPerPart
 
 @router.post("/get-candidates-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_candidates_results():
+    check_elastic_is_running()
+<<<<<<< Updated upstream
+=======
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Results are not published yet")
+>>>>>>> Stashed changes
+
     DB = await get_database()
 
     request_body = {
@@ -678,6 +745,14 @@ async def get_results_by_locality_mongo():
     """
     Used to provide benchmark for ES vs Mongo aggregation queries
     """
+<<<<<<< Updated upstream
+=======
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Results are not published yet")
+
+>>>>>>> Stashed changes
     DB = await get_database()
     results = [res async for res in DB.votes.aggregate([
         {
@@ -702,8 +777,16 @@ async def get_results_by_locality_mongo():
 
 @router.post("/get-results-by-locality", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest):
-
+    check_elastic_is_running()
     DB = await get_database()
+<<<<<<< Updated upstream
+=======
+
+    if(not check_results_published()):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Results are not published yet")
+
+>>>>>>> Stashed changes
     calculate_candidates_aggs = True if request.filter_value else False
     print("calculate_candidates_aggs", calculate_candidates_aggs)
 
@@ -754,7 +837,10 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
         request_body["query"] = {"term": {
             f"polling_place.{request.filter_by}": request.filter_value
         }}
-    pprint(request_body)
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     response = elasticsearch_curl(
         uri='/votes/_search',
         method='post',
@@ -828,60 +914,24 @@ async def get_parties_and_candidates_lookup():
 
 @router.get("/elections-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_elections_status(filter_by: str = "", filter_value: str = ""):
-    pprint(filter_by)
-    pprint(filter_value)
+    """
+    Used to provide status of elections (number of votes, number of polling places, participation , etc.).
+    This can be used in statistics FE app. This endpoints counts votes only in ES, and is therefore faster.
+    """
+    check_elastic_is_running()
+
     DB = await get_database()
+
+    response = elasticsearch_curl(
+            uri='/votes/_refresh',
+            method='post',
+            json_data=None
+        )
 
     if(filter_by and filter_value):
         print(f"filter by and value: {filter_by} {filter_value}")
         registered_voters = (await get_eligible_voters_per_locality(filter_by))[filter_value]
-        pprint(f"registered_voters with filer: {registered_voters}")
-        # votes_total_in_db = await DB.votes.count_documents({})
-
-        # pipeline for votes in db in specific locality
-        pipeline = [
-            {
-                '$lookup': {
-                    'from': 'polling_places',
-                    'localField': 'polling_place_id',
-                    'foreignField': '_id',
-                    'as': 'polling_place'
-                }
-            }, {
-                '$unwind': {
-                    'path': '$polling_place'
-                }
-            }, {
-                '$match': {
-                    f'polling_place.{filter_by}': int(filter_value)
-                }
-            }, {
-                '$group': {
-                    '_id': f'$polling_place.{filter_by}',
-                    'votes': {
-                        '$sum': 1
-                    }
-                }
-            }, {
-                '$project': {
-                    'votes': 1,
-                    '_id': 0
-                }
-            }
-        ]
-        votes_total_in_db = [res async for res in DB.votes.aggregate(pipeline)]
-        votes_total_in_db = votes_total_in_db[0]['votes']
-
-        pipeline_votes_per_locality_synced = [{
-            '$match': {
-                "synchronized": True
-            }
-        }] + pipeline
-
-        print("votes_total_in_db", votes_total_in_db)
-        votes_synchronized_in_db = [res async for res in DB.votes.aggregate(pipeline_votes_per_locality_synced)]
-        votes_synchronized_in_db = votes_synchronized_in_db[0]['votes']
-
+        
         elastic_request_data = {
             "size": 0,
             "query": {
@@ -898,15 +948,174 @@ async def get_elections_status(filter_by: str = "", filter_value: str = ""):
                 }
             }
         }
+        
         response = elasticsearch_curl(
             uri='/votes/_search',
             method='post',
             json_data=elastic_request_data
         )
-        pprint(response)
+        votes_synchronized_in_elastic = response["aggregations"]["agg_by_locality"]["buckets"][0]["doc_count"]
+        number_of_polling_places = await DB.polling_places.count_documents({f'{filter_by}': int(filter_value)})
+        
+    else:
+        registered_voters = (await get_eligible_voters_per_locality())['']
+        number_of_polling_places = await DB.polling_places.count_documents({})
+
+        response = elasticsearch_curl(
+            uri='/votes/_count',
+            method='get',
+            json_data=None
+        )
+
+        votes_synchronized_in_elastic = response['count']
+<<<<<<< Updated upstream
+
+    content = {
+        "status": "success",
+        "data": {
+            "registered_voters": registered_voters,
+            "total_votes": votes_synchronized_in_elastic,
+            "participation": round(
+                votes_synchronized_in_elastic / registered_voters * 100, 2),
+            "number_of_polling_places" : number_of_polling_places
+        }
+    }
+    return content
+
+@router.get("/synchronization-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+async def get_synchronization_status(filter_by: str = "", filter_value: str = ""):
+    """
+    Used to provide status of elections (number of votes, number of polling places, participation, etc.).
+    It also provides comparison of number of votes in ES and in DB (both synced and all).
+    This can be used for testing purposes but is rather slow.
+    """
+    check_elastic_is_running()
+
+=======
+
+    content = {
+        "status": "success",
+        "data": {
+            "registered_voters": registered_voters,
+            "total_votes": votes_synchronized_in_elastic,
+            "participation": round(
+                votes_synchronized_in_elastic / registered_voters * 100, 2),
+            "number_of_polling_places" : number_of_polling_places
+        }
+    }
+    return content
+
+@router.get("/synchronization-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+async def get_synchronization_status(filter_by: str = "", filter_value: str = ""):
+    """
+    Used to provide status of elections (number of votes, number of polling places, participation, etc.).
+    It also provides comparison of number of votes in ES and in DB (both synced and all).
+    This can be used for testing purposes but is rather slow.
+    """
+    check_elastic_is_running()
+
+>>>>>>> Stashed changes
+    DB = await get_database()
+
+    if(filter_by and filter_value):
+        registered_voters = (await get_eligible_voters_per_locality(filter_by))[filter_value]
+        
+        # pipeline for votes in db in specific locality
+        pipeline = [
+            {
+                '$match': {
+                    f'{filter_by}': int(filter_value)
+                }
+            }, {
+                '$lookup': {
+                    'from': 'votes',
+                    'localField': '_id',
+                    'foreignField': 'polling_place_id',
+                    'as': 'votes'
+                }
+            }, {
+                '$unwind': {
+                    'path': '$votes'
+                }
+            }, {
+                '$count': 'votes'
+            }
+        ]
+
+        votes_total_in_db = [res async for res in DB.polling_places.aggregate(pipeline)]
+        votes_total_in_db = votes_total_in_db[0]['votes']
+
+        pipeline_votes_per_locality_synced = [
+            {
+                '$match': {
+                    f'{filter_by}': int(filter_value)
+                }
+            }, {
+                '$lookup': {
+                    'from': 'votes',
+                    'localField': '_id',
+                    'foreignField': 'polling_place_id',
+                    'as': 'votes'
+<<<<<<< Updated upstream
+                }
+            }, {
+                '$unwind': {
+                    'path': '$votes'
+                }
+            }, {
+                '$match': {
+                    "votes.synchronized": True
+                }
+            }, {
+=======
+                }
+            }, {
+                '$unwind': {
+                    'path': '$votes'
+                }
+            }, {
+                '$match': {
+                    "votes.synchronized": True
+                }
+            }, {
+>>>>>>> Stashed changes
+                '$count': 'votes'
+            }
+        ]
+
+        votes_synchronized_in_db = [res async for res in DB.polling_places.aggregate(pipeline_votes_per_locality_synced)]
+        votes_synchronized_in_db = votes_synchronized_in_db[0]['votes']
+        
+        elastic_request_data = {
+            "size": 0,
+            "query": {
+                "term": {
+                    f"polling_place.{filter_by}": int(filter_value)
+                }
+            },
+            "aggs": {
+                "agg_by_locality": {
+                    "terms": {
+                        "size": 10000,
+                        "field": f"polling_place.{filter_by}"
+                    }
+                }
+            }
+        }
+        
+        response = elasticsearch_curl(
+            uri='/votes/_search',
+            method='post',
+            json_data=elastic_request_data
+        )
+
+        number_of_polling_places = await DB.polling_places.count_documents({f'{filter_by}': int(filter_value)})
+
+        
         votes_synchronized_in_elastic = response["aggregations"]["agg_by_locality"]["buckets"][0]["doc_count"]
     else:
         registered_voters = (await get_eligible_voters_per_locality())['']
+        number_of_polling_places = await DB.polling_places.count_documents({})
         votes_total_in_db = await DB.votes.count_documents({})
         votes_synchronized_in_db = await DB.votes.count_documents({"synchronized": True})
 
@@ -932,7 +1141,8 @@ async def get_elections_status(filter_by: str = "", filter_value: str = ""):
             "participation": round(
                 votes_total_in_db / registered_voters * 100, 2),
             "votes_synchronized_in_db": votes_synchronized_in_db,
-            "votes_synchronized_in_elastic": votes_synchronized_in_elastic
+            "votes_synchronized_in_elastic": votes_synchronized_in_elastic,
+            "number_of_polling_places" : number_of_polling_places
         }
     }
     return content
