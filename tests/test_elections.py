@@ -2,7 +2,6 @@ import nest_asyncio
 nest_asyncio.apply()
 __import__('IPython').embed()
 
-import os
 import pytest
 import asyncio
 
@@ -25,7 +24,9 @@ client = TestClient(app)
 
 VERBOSE = True
 
-def connect_to_db():
+def connect_to_db() -> motor.motor_asyncio.AsyncIOMotorClient:
+    """ Connec to database """
+
     clinet = motor.motor_asyncio.AsyncIOMotorClient(
         f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
     )
@@ -34,7 +35,14 @@ def connect_to_db():
     return db
 
 
-def set_vote(token="fjosjfidsw", party_id=10, election_id="election_id", candidate_ids=[1075, 1076, 1077]):
+def set_vote(
+    token: str = "fjosjfidsw",
+    party_id: int = 10,
+    election_id: str = "election_id",
+    candidate_ids: list = [1075, 1076, 1077]) -> dict:
+    
+    """ Initialize default vote """
+
     vote = {
         "token": token,
         "party_id": party_id,
@@ -43,7 +51,15 @@ def set_vote(token="fjosjfidsw", party_id=10, election_id="election_id", candida
     }
     return vote
 
-async def get_pems(db, polling_place_id, g_private_key_pem="valid", public_key_pem="valid"):
+
+async def get_pems(
+    db: motor.motor_asyncio.AsyncIOMotorClient,
+    polling_place_id: int,
+    g_private_key_pem: str = "valid",
+    public_key_pem: str = "valid") -> tuple:
+
+    """ Return pems """
+
     key_pair = await db.key_pairs.find_one({"polling_place_id": polling_place_id}, {"_id":0})
     if g_private_key_pem == "valid":
         g_private_key_pem = key_pair["g_private_key_pem"]
@@ -54,7 +70,12 @@ async def get_pems(db, polling_place_id, g_private_key_pem="valid", public_key_p
     return g_private_key_pem, public_key_pem
 
 
-def set_headers(accept="application/json", content_type="application/json"):
+def set_headers(
+    accept: str = "application/json",
+    content_type: str = "application/json") -> dict:
+
+    """ Initialize default headers """
+
     headers = {
         "accept": accept,
         "Content-Type": content_type,
@@ -65,7 +86,8 @@ def set_headers(accept="application/json", content_type="application/json"):
 @pytest.mark.asyncio
 async def test_valid_data():
     """
-    Everything is valid such as polling_place_id, g_private_key_pem, public_key_pem, token, party_id, election_id, candidate_ids
+    Test when everything is valid such as polling_place_id, g_private_key_pem,
+    public_key_pem, token, party_id, election_id, candidate_ids
     """
 
     db = connect_to_db()
@@ -97,9 +119,7 @@ async def test_valid_data():
 
 @pytest.mark.asyncio
 async def test_invalid_g_private_key_pem():
-    """
-    Invalid gateway's private key pem
-    """
+    """ Test invalid gateway's private key pem """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -107,7 +127,9 @@ async def test_invalid_g_private_key_pem():
     db.votes.drop()
 
     polling_place_id = 0
-    g_private_key_pem, public_key_pem = await get_pems(db, polling_place_id, g_private_key_pem="invalid_g_private_key_pem")
+    g_private_key_pem, public_key_pem = await get_pems(db,
+                                                       polling_place_id,
+                                                       g_private_key_pem="invalid_g_private_key_pem")
 
     vote = set_vote()
 
@@ -117,12 +139,9 @@ async def test_invalid_g_private_key_pem():
         assert True
 
 
-
 @pytest.mark.asyncio
 async def test_invalid_public_key_pem():
-    """
-    Invalid public key pem
-    """
+    """ Test invalid public key pem """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -130,7 +149,9 @@ async def test_invalid_public_key_pem():
     db.votes.drop()
 
     polling_place_id = 0
-    g_private_key_pem, public_key_pem = await get_pems(db, polling_place_id, public_key_pem="invalid_public_key_pem")
+    g_private_key_pem, public_key_pem = await get_pems(db,
+                                                       polling_place_id,
+                                                       public_key_pem="invalid_public_key_pem")
 
     vote = set_vote()
 
@@ -142,9 +163,7 @@ async def test_invalid_public_key_pem():
 
 @pytest.mark.asyncio
 async def test_invalid_pems():
-    """
-    Invalid gateway's private key pem and public key pem
-    """
+    """ Test invalid gateway's private key pem and public key pem """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -152,7 +171,10 @@ async def test_invalid_pems():
     db.votes.drop()
 
     polling_place_id = 0
-    g_private_key_pem, public_key_pem = await get_pems(db, polling_place_id, g_private_key_pem = "invalid_private_key_pem", public_key_pem="invalid_public_key_pem")
+    g_private_key_pem, public_key_pem = await get_pems(db,
+                                                       polling_place_id,
+                                                       g_private_key_pem = "invalid_private_key_pem",
+                                                       public_key_pem="invalid_public_key_pem")
 
     vote = set_vote()
 
@@ -164,9 +186,7 @@ async def test_invalid_pems():
 
 @pytest.mark.asyncio
 async def test_duplicated_token():
-    """
-    Duplicated token in the payload
-    """
+    """ Test duplicated token in the payload """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -199,9 +219,7 @@ async def test_duplicated_token():
 
 @pytest.mark.asyncio
 async def test_invalid_party_id():
-    """
-    No occurrence in database for selected party id
-    """
+    """ Test no occurrence in database for selected party id """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -233,9 +251,7 @@ async def test_invalid_party_id():
 
 @pytest.mark.asyncio
 async def test_no_party_id():
-    """
-    Vote without party id is still valid vote
-    """
+    """ Test vote without party id is still valid vote """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -267,9 +283,7 @@ async def test_no_party_id():
 
 @pytest.mark.asyncio
 async def test_invalid_election_id():
-    """
-    No occurrence in database for selected election id
-    """
+    """ Test no occurrence in database for selected election id """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -301,9 +315,7 @@ async def test_invalid_election_id():
 
 @pytest.mark.asyncio
 async def test_invalid_candidate_ids_1():
-    """
-    More than 5 candidate ids
-    """
+    """ Test more than 5 candidate ids """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -335,9 +347,7 @@ async def test_invalid_candidate_ids_1():
 
 @pytest.mark.asyncio
 async def test_invalid_candidate_ids_2():
-    """
-    Duplicate candidate ids
-    """
+    """ Test duplicate candidate ids """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -369,9 +379,7 @@ async def test_invalid_candidate_ids_2():
 
 @pytest.mark.asyncio
 async def test_invalid_candidate_ids_3():
-    """
-    No occurrence in database for selected candidate id
-    """
+    """ Test no occurrence in database for selected candidate id """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -403,9 +411,7 @@ async def test_invalid_candidate_ids_3():
 
 @pytest.mark.asyncio
 async def test_invalid_candidate_ids_4():
-    """
-    Invalid candidate id for selected polling place id
-    """
+    """ Test invalid candidate id for selected polling place id """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -437,9 +443,7 @@ async def test_invalid_candidate_ids_4():
 
 @pytest.mark.asyncio
 async def test_no_candidates():
-    """
-    Vote without candidates is still valid vote
-    """
+    """ Test vote without candidates is still valid vote """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -471,9 +475,7 @@ async def test_no_candidates():
 
 @pytest.mark.asyncio
 async def test_duplicated_vote():
-    """
-    Trying to insert same vote twice
-    """
+    """ Test insert same vote twice """
 
     db = connect_to_db()
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
@@ -507,7 +509,8 @@ async def test_duplicated_vote():
 @pytest.mark.asyncio
 async def test_invalid_combination_of_party_id_and_candidate_ids():
     """
-    There is no possibility to have party id set to None and non empty list of candidate ids
+    Test if there is no possibility to have party id set to None and non empty
+    list of candidate ids
     """
 
     db = connect_to_db()
