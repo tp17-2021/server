@@ -1,9 +1,12 @@
 import os
-from anyio import connect_unix
 import motor.motor_asyncio
 
 
-async def connect_to_mongo():
+DB: motor.motor_asyncio.AsyncIOMotorClient = None
+
+
+async def connect_to_mongo() -> None:
+    """ Connect to mongo database """
     global DB
     
     CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
@@ -12,16 +15,15 @@ async def connect_to_mongo():
     DB = CLIENT[os.environ["SERVER_DB_NAME"]]    
 
 
-DB: motor.motor_asyncio.AsyncIOMotorClient = None
-
-
 async def get_database() -> motor.motor_asyncio.AsyncIOMotorClient:
+    """ Get database instance """
     if DB is None:
         await connect_to_mongo()
-
     return DB
 
+
 async def get_parties_with_candidates():
+    """ Return aggregated parties with candidates """
     pipeline = [{
         "$lookup": {
             "from": "candidates",
@@ -34,11 +36,15 @@ async def get_parties_with_candidates():
     return parties_with_candidates
 
 # TODO prerobit, toto neni dobre (treba na urovni db spravit)
-async def get_max_id(collection_name):
-    ids = [doc["_id"] async for doc in DB[collection_name].find({}, {"_id":1})]
-    ids.sort()
-    if len(ids) == 0:
-        max_id = -1
-    else:
-        max_id = ids[-1]
-    return max_id
+async def get_max_id(collection_name: str) -> int:
+    """ Return maximum id from provided collection name """
+    # ids = [doc["_id"] async for doc in DB[collection_name].find({}, {"_id":1})]
+    # ids.sort()
+    # if len(ids) == 0:
+    #     max_id = -1
+    # else:
+    #     max_id = ids[-1]
+    # return max_id
+
+    id  = DB[collection_name].find({}, {"_id":1}).sort({"_id":-1}).limit(1)
+    return id

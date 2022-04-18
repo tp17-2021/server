@@ -56,6 +56,4 @@ docs/_build/
 server-db-data/
 server-db-data/**
 
-# Files
-
-
+.pytest_cache
