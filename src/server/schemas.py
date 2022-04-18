@@ -1,35 +1,30 @@
 from typing import Collection
-from pydantic import BaseModel, validator, Extra, Field
 from typing import List, Optional
+from pydantic import BaseModel, validator, Field
 
 
 class Message(BaseModel):
     status: str
     message: str
 
-
 class Collection(BaseModel):
     name: str
     keys: List[str] = []
 
-
 class Collections(BaseModel):
     collections: List[Collection] = []
-
 
 class Text(BaseModel):
     sk: str
     en: str
-
 
 class Texts(BaseModel):
     elections_name_short: Text
     elections_name_long: Text
     election_date: Text
 
-
 class Candidate(BaseModel):
-    id: int = Field(..., alias='_id')
+    id: int = Field(..., alias="_id")
     party_number: int
     order: int
     first_name: str
@@ -39,9 +34,8 @@ class Candidate(BaseModel):
     occupation: str
     residence: str
 
-
 class Party(BaseModel):
-    id: int = Field(..., alias='_id')
+    id: int = Field(..., alias="_id")
     party_number: int
     name: str
     official_abbr: str
@@ -51,9 +45,8 @@ class Party(BaseModel):
     color: str
     candidates: List[Candidate] = []
 
-
 class PollingPlace(BaseModel):
-    id: int = Field(..., alias='_id')
+    id: int = Field(..., alias="_id")
     region_code: int
     region_name: str
     administrative_area_code: int
@@ -81,15 +74,13 @@ class PollingPlace(BaseModel):
             }
         }
 
-
 class KeyPair(BaseModel):
-    id: int = Field(..., alias='_id')
+    id: int = Field(..., alias="_id")
     polling_place_id: int
     private_key_pem: str
     public_key_pem: str
     g_private_key_pem: str
     g_public_key_pem: str
-
 
 class VotingData(BaseModel):
     polling_places: List[PollingPlace] = []
@@ -100,13 +91,11 @@ class VotingData(BaseModel):
     regions: List[object]
     texts: Texts
 
-
 class GatewayConfig(BaseModel):
     polling_place: PollingPlace
     parties: List[Party] = []
     key_pairs: List[KeyPair] = []
     texts: Texts
-
 
 class Vote(BaseModel):
     token: str
@@ -114,11 +103,9 @@ class Vote(BaseModel):
     election_id: str
     candidate_ids: List[int] = []
 
-
 class VoteEncrypted(BaseModel):
     encrypted_message: str
     encrypted_object: str
-
 
 class VotesEncrypted(BaseModel):
     polling_place_id: int
@@ -136,7 +123,6 @@ class VotesEncrypted(BaseModel):
                 ]
             }
         }
-
 
 class VoteToBeEncrypted(BaseModel):
     vote: Vote
@@ -161,7 +147,6 @@ class VoteToBeEncrypted(BaseModel):
             }
         }
 
-
 class VoteToBeDecrypted(BaseModel):
     encrypted_vote: VoteEncrypted
     private_key_pem: str
@@ -179,10 +164,8 @@ class VoteToBeDecrypted(BaseModel):
             }
         }
 
-
 class VoteDecrypted(BaseModel):
     vote: Vote
-
 
 class StatisticsPerPartyRequest(BaseModel):
     party: Optional[str] = None
@@ -194,18 +177,17 @@ class StatisticsPerPartyRequest(BaseModel):
             }
         }
 
-
 class StatisticsPerLocalityRequest(BaseModel):
     filter_by: str
     filter_value: Optional[int] = None
 
-    @validator('filter_by')
+    @validator("filter_by")
     def group_by_only_plausible_localities(cls, v):
-        possible_values = ['region_code', 'county_code',
-                           'municipality_code', 'administrative_area_code']
+        possible_values = ["region_code", "county_code",
+                           "municipality_code", "administrative_area_code"]
         if v not in possible_values:
             raise ValueError(
-                'Invalid filter by value. Possible valuies: ' + ', '.join(possible_values))
+                "Invalid filter by value. Possible values: " + ",".join(possible_values))
         return v
 
     class Config:
@@ -216,11 +198,9 @@ class StatisticsPerLocalityRequest(BaseModel):
             }
         }
 
-
 class Member(BaseModel):
     name: str
     agree: bool
-
 
 class Commission(BaseModel):
     polling_place_id: int

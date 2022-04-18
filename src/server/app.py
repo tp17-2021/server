@@ -1,8 +1,11 @@
+# General modules
 import os
 
+# FastAPI modules
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Server modules
 from src.server.routes.database import router as DatabaseRouter
 from src.server.routes.elastic import router as ElasticRouter
 from src.server.routes.elections import router as ElectionsRouter
