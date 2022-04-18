@@ -1,29 +1,24 @@
+# General modules
 import os
 import pytest
-import asyncio
-
-import os
 import motor.motor_asyncio
 
-from unittest import mock
-from tests import envs
 
+def connect_to_db() -> motor.motor_asyncio.AsyncIOMotorClient:
+    """ Connect to database """
 
-def connect_to_db():
     CLIENT = motor.motor_asyncio.AsyncIOMotorClient(
         f"{os.environ['SERVER_DB_HOST']}:{os.environ['SERVER_DB_PORT']}"
     )
     db = CLIENT[os.environ["SERVER_DB_NAME"]]
     _ = str(db)
-    # print(_)
     return db
 
 
 @pytest.mark.asyncio
 async def test_get_party_by_id():
-    """
-    Get collection with party id equals 0
-    """
+    """ Get collection with party id equals 0 """
+
     db = connect_to_db()
 
     party = await db.parties.find_one({"_id": 0})
@@ -41,9 +36,8 @@ async def test_get_party_by_id():
 
 @pytest.mark.asyncio
 async def test_get_candidate_by_id():
-    """
-    Get collection with candidate id equals 0
-    """
+    """ Get collection with candidate id equals 0 """
+
     db = connect_to_db()
 
     candidate = await db.candidates.find_one({"_id": 0})
@@ -63,9 +57,8 @@ async def test_get_candidate_by_id():
 
 @pytest.mark.asyncio
 async def test_get_polling_place_by_id():
-    """
-    Get collection with polling place id equals 0
-    """
+    """ Get collection with polling place id equals 0 """
+
     db = connect_to_db()
 
     polling_place = await db.polling_places.find_one({"_id": 0})
@@ -87,9 +80,8 @@ async def test_get_polling_place_by_id():
 
 @pytest.mark.asyncio
 async def test_get_vote_by_id():
-    """
-    Get collection with votes id equals 0
-    """
+    """ Get collection with votes id equals 0 """
+    
     db = connect_to_db()
 
     vote = await db.votes.find_one({"_id": 0})
@@ -108,9 +100,8 @@ async def test_get_vote_by_id():
 
 @pytest.mark.asyncio
 async def test_insert_vote():
-    """
-    Insert one vote and check if number of all votes has increased by one 
-    """
+    """ Insert one vote and check if number of all votes has increased by one  """
+    
     db = connect_to_db()
 
     before_insert_ids = [collection["_id"] async for collection in db.votes.find({}, {"_id": 1})]
