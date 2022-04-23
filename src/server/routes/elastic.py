@@ -14,7 +14,7 @@ import os
 from pprint import pprint
 
 import traceback
-from fastapi import status, APIRouter
+from fastapi import status, APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from src.server import config as c
@@ -43,6 +43,10 @@ def check_elastic_is_running():
                             detail="Elastic is not available yet")
         # return False
         # raise ValueError("Connection failed")
+
+    if not ES.indices.exists(index="votes"):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Elastic votes index was not created yet")
     return True
 
 # function for the cURL requests to Elastic search
