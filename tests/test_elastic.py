@@ -1,26 +1,44 @@
+from fastapi.testclient import TestClient
+from src.server.database import connect_to_mongo
+from tests import envs
+from unittest import mock
+import motor.motor_asyncio
+from pprint import pprint
+import requests
+import asyncio
+import pytest
+import os
 import nest_asyncio
 nest_asyncio.apply()
 __import__('IPython').embed()
 
-import os
-import pytest
-import asyncio
-import requests
-from pprint import pprint
-
-import os
-import motor.motor_asyncio
-
-from unittest import mock
-from tests import envs
 
 with mock.patch.dict(os.environ, envs.envs):
     from src.server.app import app
 
-from src.server.database import connect_to_mongo
-from fastapi.testclient import TestClient
 
 client = TestClient(app)
+
+
+def login_and_get_headers():
+    admin_username = os.environ['ADMIN_USERNAME'] if 'ADMIN_USERNAME' in os.environ else 'admin'
+    admin_password = os.environ['ADMIN_PASSWORD'] if 'ADMIN_PASSWORD' in os.environ else 'admin'
+
+    res = client.post("/token", data={
+                        'grant_type': 'password', 'username': admin_username, 'password': admin_password})
+
+    access_token = res.json()['access_token']
+    access_token_type = res.json()['token_type']
+    headers = {
+        "accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"{access_token_type} {access_token}"
+    }
+    return headers
+
+def publish_results():
+    headers = login_and_get_headers()
+    res = client.post("/elastic/results/publish", headers=headers)
 
 def connect_to_db():
     clinet = motor.motor_asyncio.AsyncIOMotorClient(
@@ -29,6 +47,7 @@ def connect_to_db():
     db = clinet[os.environ["SERVER_DB_NAME"]]
     _ = str(db)
     return db
+
 
 @pytest.mark.asyncio
 async def test_elastic_nodes_running():
@@ -68,7 +87,8 @@ async def test_seed_and_synchronize_elastic_vote():
         "accept": "application/json",
         "Content-Type": "application/json",
     }
-    number_of_votes_to_seed = 200 # minimal count is 151 for republic number to be non zero
+    # minimal count is 151 for republic number to be non zero
+    number_of_votes_to_seed = 200
 
     # Import data
     response = client.post(
@@ -84,6 +104,7 @@ async def test_seed_and_synchronize_elastic_vote():
     response = client.get(
         "/elastic/synchronization-status", headers=headers, json={})
     response = response.json()
+    print("response:", response)
 
     votes_in_db = response['data']['total_votes']
 
@@ -98,7 +119,7 @@ async def test_seed_and_synchronize_elastic_vote():
     # Synchronize new votes
     response = client.post(
         "/elastic/synchronize-votes-es?number=50000", headers=headers, json={})
-    assert response.status_code == 200    
+    assert response.status_code == 200
 
     # Get election status, there should be new votes synched
     response = client.get(
@@ -116,10 +137,10 @@ async def test_elestic_statistics():
     Check if elastic statistics enpoints work
     """
     asyncio.get_event_loop().run_until_complete(connect_to_mongo())
-    headers = {
-        "accept": "application/json",
-        "Content-Type": "application/json",
-    }
+
+    headers = login_and_get_headers()
+    publish_results()
+
     # Parties results without filter
     response = client.post(
         "/elastic/get-parties-results", headers=headers, json={})

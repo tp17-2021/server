@@ -11,6 +11,9 @@ from src.server.routes.elastic import router as ElasticRouter
 from src.server.routes.elections import router as ElectionsRouter
 from src.server.routes.encryption import router as EncryptionRouter
 from src.server.routes.statistics import router as StatisticsRouter
+from src.server.routes.elastic import router as ElasticRouter
+from src.server.routes.auth import router as AuthRouter
+
 from src.server.database import connect_to_mongo
 
 # Create FastAPI app
@@ -27,6 +30,7 @@ app.add_middleware(
 )
 
 # Include routes
+app.include_router(AuthRouter)
 app.include_router(DatabaseRouter)
 app.include_router(ElectionsRouter)
 app.include_router(ElasticRouter)
