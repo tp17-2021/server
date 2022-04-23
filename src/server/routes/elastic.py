@@ -142,6 +142,15 @@ def results_publish(current_user: User = Depends(get_current_active_user)):
 
     return content
 
+@router.get("/results/status")
+def results_status():
+    global results_published
+    content = {
+        "published": results_published
+    }
+
+    return content
+
 
 @router.post("/setup-elastic-vote-index", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def setup_elastic_votes_index():
