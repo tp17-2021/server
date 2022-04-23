@@ -1,41 +1,31 @@
-from asyncore import poll
-import re
-from mdutils.mdutils import MdUtils
-from time import gmtime, strftime
-import json
-import glob
-import base64
-import string
-import random
-from urllib import response
-from xml.dom.expatbuilder import CDATA_SECTION_NODE
-from pytest import yield_fixture
-
-from electiersa import electiersa
-from multiprocessing.sharedctypes import synchronized
-import random
-import string
-import requests
-import time
+# General modules
 import os
-from pprint import pprint
+import base64
+import glob
 
-import traceback
+# FastAPI modules
 from fastapi import status, APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
+# Server modules
 from src.server import config
 from src.server import schemas
 from src.server.database import DB, get_database
 from src.server.database import get_parties_with_candidates, get_max_id
-from src.server.routes.elastic import get_parties_and_candidates_lookup
-import asyncio
 
-from elasticsearch import Elasticsearch, helpers
+# Custom module from PyPI
+from electiersa import electiersa
 
-# Main elastic search connction
-ES = Elasticsearch(hosts=[{"scheme": "http", 'host': os.environ['ELASTIC_HOST'], 'port': int(
-    os.environ['ELASTIC_PORT'])}])
+# TODO pomenovat
+from elasticsearch import Elasticsearch
+
+# Main elastic search connection
+ES = Elasticsearch(
+    hosts=[{
+        "scheme": "http",
+        "host": os.environ["ELASTIC_HOST"],
+        "port": int(os.environ["ELASTIC_PORT"])
+    }])
 
 # Create FastAPI router
 router = APIRouter(
@@ -44,7 +34,9 @@ router = APIRouter(
 )
 
 
-async def validate_polling_place_id(polling_place_id):
+async def validate_polling_place_id(polling_place_id: int) -> dict:
+    """ Validate polling place id """
+
     DB = await get_database()
 
     if await DB.key_pairs.count_documents({"polling_place_id": polling_place_id}) == 0:
@@ -61,7 +53,9 @@ async def validate_polling_place_id(polling_place_id):
     return content
 
 
-async def validate_party_and_candidates(vote):
+async def validate_party_and_candidates(vote: dict) -> dict:
+    """ Validate party and candidates based on provided vote """
+
     candidate_ids = vote["candidate_ids"]
 
     if len(candidate_ids) > 5:
@@ -122,13 +116,15 @@ async def validate_party_and_candidates(vote):
     return content
 
 
-async def validate_tokens(tokens):
+async def validate_tokens(tokens: list) -> dict:
+    """ Validate tokens """
+
     content = {
         "status": "success",
         "message": "Tokens were successfully validated",
     }
 
-    if 'ACCEPT_TOKEN_VALID' in os.environ and os.environ['ACCEPT_TOKEN_VALID'] == '1':
+    if "ACCEPT_TOKEN_VALID" in os.environ and os.environ["ACCEPT_TOKEN_VALID"] == "1":
         return content
 
     if len(set(tokens)) != len(tokens):
@@ -136,11 +132,12 @@ async def validate_tokens(tokens):
             "status": "failure",
             "message": "Duplicate tokens in the batch",
         }
-
     return content
 
 
-async def validate_token_with_polling_place_id(token, polling_place_id):
+async def validate_token_with_polling_place_id(token: str, polling_place_id: int) -> dict:
+    """ Validate token with polling place id """
+
     DB = await get_database()
 
     content = {
@@ -156,17 +153,19 @@ async def validate_token_with_polling_place_id(token, polling_place_id):
             "status": "failure",
             "message": "Duplicate combination of token and polling place id",
         }
-
     return content
 
 
-async def validate_election_id(election_id):
+async def validate_election_id(election_id: str) -> dict:
+    """ Validate election id """
+
     if election_id != config.ELECTION_ID:
         content = {
             "status": "failure",
             "message": "Invalid election id",
         }
         return content
+
     content = {
         "status": "success",
         "message": "Election id was successfully validated",
@@ -174,7 +173,9 @@ async def validate_election_id(election_id):
     return content
 
 
-async def validate_decryption(decrypted_vote, polling_place_id, max_id, _id):
+async def validate_decryption(decrypted_vote: dict, polling_place_id: int, max_id: int, _id: int) -> dict:
+    """ Validate decryption """
+
     if decrypted_vote is None:
         content = {
             "status": "failure",
@@ -189,10 +190,8 @@ async def validate_decryption(decrypted_vote, polling_place_id, max_id, _id):
             "status": "failure",
             "message": "Invalid decryption - unspecified",
         }
-
-        print('--------------', e)
-
         return content
+
     content = {
         "status": "success",
         "message": "Decryption was successfully validated",
@@ -267,8 +266,8 @@ async def validate_votes(request):
     return content
 
 
-@router.post("/vote", response_model=schemas.Message, status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}})
-async def vote(request: schemas.VotesEncrypted):
+@router.post("/vote", response_model=schemas.Message, responses={400: {"model": schemas.Message}})
+async def vote(request: schemas.VotesEncrypted) -> dict:
     """
     Process candidate's vote
     """
@@ -375,15 +374,6 @@ async def get_config_file(mode="all", polling_place_id=None):
         }
     ])]
 
-    # print(key_pairs)
-
-    # -----
-    # todo - toto musime potom vymazat, je to len pre ucel FASTAPI GUI
-    # polling_places = polling_places[:2]
-    # parties_with_candidates = parties_with_candidates[:2]
-    # key_pairs = key_pairs[:2]
-    # -----
-
     # multilingual text for VT application
     texts = {
         "elections_name_short": {
@@ -428,7 +418,6 @@ async def get_config_file(mode="all", polling_place_id=None):
         }
     else:
         return {
-            # "polling_places": polling_places,
             "parties": parties_with_candidates,
             "key_pairs": key_pairs,
             "texts": texts,
@@ -437,20 +426,24 @@ async def get_config_file(mode="all", polling_place_id=None):
             "municipalities": municipalitites
         }
 
+# TODO pridat tam schemu, neviem preco je to takto bez toho, ale treba to vratit naspat, asi sa nieco menilo...
 # @router.get("/voting-data", response_model=schemas.VotingData, status_code=status.HTTP_200_OK)
-@router.get("/voting-data", status_code=status.HTTP_200_OK)
-async def get_voting_data():
+@router.get("/voting-data")
+async def get_voting_data() -> dict:
     """
-    Download voting data json (used on statistics FE) using command curl http://localhost:8222/elections/voting-data > config.json
+    Download voting data json (used on statistics FE) using
+    command curl http://localhost:8222/elections/voting-data > config.json
     """
+
     content = await get_config_file()
     return content
 
 
 @router.get("/gateway-config", status_code=status.HTTP_200_OK)
-async def get_gateway_config(polling_place_id: int):
+async def get_gateway_config(polling_place_id: int) -> dict:
     """
-    Download gateway config data json using command curl http://localhost:8222/elections/gateway-config > config.json
+    Download gateway config data json using command
+    curl http://localhost:8222/elections/gateway-config > config.json
     """
 
     content = await get_config_file(
@@ -461,6 +454,4 @@ async def get_gateway_config(polling_place_id: int):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Polling place not found"
         )
-
     return content
-

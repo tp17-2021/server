@@ -14,7 +14,11 @@ import os
 from pprint import pprint
 
 import traceback
+<<<<<<< HEAD
 from fastapi import status, APIRouter, Depends, HTTPException, Request
+=======
+from fastapi import status, APIRouter, HTTPException
+>>>>>>> development
 from fastapi.responses import JSONResponse
 
 from src.server import config as c
@@ -38,6 +42,20 @@ router = APIRouter(
     prefix="/elastic",
     tags=["Elastic search"],
 )
+
+
+def check_elastic_is_running():
+    global ES
+    if not ES.ping():
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Elastic is not available yet")
+        # return False
+        # raise ValueError("Connection failed")
+
+    if not ES.indices.exists(index="votes"):
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Elastic votes index was not created yet")
+    return True
 
 # function for the cURL requests to Elastic search
 
@@ -377,9 +395,13 @@ async def synchronize_votes_ES(number=c.ES_SYNCHRONIZATION_BATCH_SIZE):
 
 @router.post("/get-parties-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_parties_results(request: schemas.StatisticsPerPartyRequest):
+<<<<<<< HEAD
 
     if(not check_results_published()):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+=======
+    check_elastic_is_running()
+>>>>>>> development
 
     DB = await get_database()
 
@@ -571,9 +593,13 @@ def calcualte_winning_parties_and_seats(transformed_data):
 
 @router.post("/get-party-candidate-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_parties_with_candidates_results(request: schemas.StatisticsPerPartyRequest):
+<<<<<<< HEAD
 
     if(not check_results_published()):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+=======
+    check_elastic_is_running()
+>>>>>>> development
 
     DB = await get_database()
 
@@ -646,9 +672,13 @@ async def get_parties_with_candidates_results(request: schemas.StatisticsPerPart
 
 @router.post("/get-candidates-results", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_candidates_results():
+<<<<<<< HEAD
 
     if(not check_results_published()):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+=======
+    check_elastic_is_running()
+>>>>>>> development
 
     DB = await get_database()
 
@@ -750,7 +780,7 @@ async def get_results_by_locality_mongo():
 
 @router.post("/get-results-by-locality", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest):
-
+    check_elastic_is_running()
     DB = await get_database()
 
     if(not check_results_published()):
@@ -806,7 +836,10 @@ async def get_results_by_locality(request: schemas.StatisticsPerLocalityRequest)
         request_body["query"] = {"term": {
             f"polling_place.{request.filter_by}": request.filter_value
         }}
+<<<<<<< HEAD
     
+=======
+>>>>>>> development
     response = elasticsearch_curl(
         uri='/votes/_search',
         method='post',
@@ -879,49 +912,147 @@ async def get_parties_and_candidates_lookup():
 
 @router.get("/elections-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
 async def get_elections_status(filter_by: str = "", filter_value: str = ""):
+<<<<<<< HEAD
     
     # if(not check_results_published()):
     #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Results are not published yet")
+=======
+    """
+    Used to provide status of elections (number of votes, number of polling places, participation , etc.).
+    This can be used in statistics FE app. This endpoints counts votes only in ES, and is therefore faster.
+    """
+    check_elastic_is_running()
+>>>>>>> development
+
+    DB = await get_database()
+
+    response = elasticsearch_curl(
+        uri='/votes/_refresh',
+        method='post',
+        json_data=None
+    )
+
+    if(filter_by and filter_value):
+        registered_voters = (await get_eligible_voters_per_locality(filter_by))[filter_value]
+<<<<<<< HEAD
+=======
+
+        elastic_request_data = {
+            "size": 0,
+            "query": {
+                "term": {
+                    f"polling_place.{filter_by}": int(filter_value)
+                }
+            },
+            "aggs": {
+                "agg_by_locality": {
+                    "terms": {
+                        "size": 10000,
+                        "field": f"polling_place.{filter_by}"
+                    }
+                }
+            }
+        }
+
+        response = elasticsearch_curl(
+            uri='/votes/_search',
+            method='post',
+            json_data=elastic_request_data
+        )
+        votes_synchronized_in_elastic = response["aggregations"]["agg_by_locality"]["buckets"][0]["doc_count"]
+        number_of_polling_places = await DB.polling_places.count_documents({f'{filter_by}': int(filter_value)})
+
+    else:
+        registered_voters = (await get_eligible_voters_per_locality())['']
+        number_of_polling_places = await DB.polling_places.count_documents({})
+
+        response = elasticsearch_curl(
+            uri='/votes/_count',
+            method='get',
+            json_data=None
+        )
+
+        votes_synchronized_in_elastic = response['count']
+
+    content = {
+        "status": "success",
+        "data": {
+            "registered_voters": registered_voters,
+            "total_votes": votes_synchronized_in_elastic,
+            "participation": round(
+                votes_synchronized_in_elastic / registered_voters * 100, 2),
+            "number_of_polling_places": number_of_polling_places
+        }
+    }
+    return content
+
+
+@router.get("/synchronization-status", status_code=status.HTTP_200_OK, responses={400: {"model": schemas.Message}, 500: {"model": schemas.Message}})
+async def get_synchronization_status(filter_by: str = "", filter_value: str = ""):
+    """
+    Used to provide status of elections (number of votes, number of polling places, participation, etc.).
+    It also provides comparison of number of votes in ES and in DB (both synced and all).
+    This can be used for testing purposes but is rather slow.
+    """
+    check_elastic_is_running()
 
     DB = await get_database()
 
     if(filter_by and filter_value):
         registered_voters = (await get_eligible_voters_per_locality(filter_by))[filter_value]
+>>>>>>> development
 
         # pipeline for votes in db in specific locality
         pipeline = [
             {
+                '$match': {
+                    f'{filter_by}': int(filter_value)
+                }
+            }, {
                 '$lookup': {
-                    'from': 'polling_places',
-                    'localField': 'polling_place_id',
-                    'foreignField': '_id',
-                    'as': 'polling_place'
+                    'from': 'votes',
+                    'localField': '_id',
+                    'foreignField': 'polling_place_id',
+                    'as': 'votes'
                 }
             }, {
                 '$unwind': {
-                    'path': '$polling_place'
+                    'path': '$votes'
+                }
+            }, {
+                '$count': 'votes'
+            }
+        ]
+
+        votes_total_in_db = [res async for res in DB.polling_places.aggregate(pipeline)]
+        votes_total_in_db = votes_total_in_db[0]['votes']
+
+        pipeline_votes_per_locality_synced = [
+            {
+                '$match': {
+                    f'{filter_by}': int(filter_value)
+                }
+            }, {
+                '$lookup': {
+                    'from': 'votes',
+                    'localField': '_id',
+                    'foreignField': 'polling_place_id',
+                    'as': 'votes'
+                }
+            }, {
+                '$unwind': {
+                    'path': '$votes'
                 }
             }, {
                 '$match': {
-                    f'polling_place.{filter_by}': int(filter_value)
+                    "votes.synchronized": True
                 }
             }, {
-                '$group': {
-                    '_id': f'$polling_place.{filter_by}',
-                    'votes': {
-                        '$sum': 1
-                    }
-                }
-            }, {
-                '$project': {
-                    'votes': 1,
-                    '_id': 0
-                }
+                '$count': 'votes'
             }
         ]
-        votes_total_in_db = [res async for res in DB.votes.aggregate(pipeline)]
-        votes_total_in_db = votes_total_in_db[0]['votes']
 
+<<<<<<< HEAD
         pipeline_votes_per_locality_synced = [{
             '$match': {
                 "synchronized": True
@@ -929,6 +1060,9 @@ async def get_elections_status(filter_by: str = "", filter_value: str = ""):
         }] + pipeline
 
         votes_synchronized_in_db = [res async for res in DB.votes.aggregate(pipeline_votes_per_locality_synced)]
+=======
+        votes_synchronized_in_db = [res async for res in DB.polling_places.aggregate(pipeline_votes_per_locality_synced)]
+>>>>>>> development
         votes_synchronized_in_db = votes_synchronized_in_db[0]['votes']
 
         elastic_request_data = {
@@ -947,14 +1081,22 @@ async def get_elections_status(filter_by: str = "", filter_value: str = ""):
                 }
             }
         }
+
         response = elasticsearch_curl(
             uri='/votes/_search',
             method='post',
             json_data=elastic_request_data
         )
+<<<<<<< HEAD
+=======
+
+        number_of_polling_places = await DB.polling_places.count_documents({f'{filter_by}': int(filter_value)})
+
+>>>>>>> development
         votes_synchronized_in_elastic = response["aggregations"]["agg_by_locality"]["buckets"][0]["doc_count"]
     else:
         registered_voters = (await get_eligible_voters_per_locality())['']
+        number_of_polling_places = await DB.polling_places.count_documents({})
         votes_total_in_db = await DB.votes.count_documents({})
         votes_synchronized_in_db = await DB.votes.count_documents({"synchronized": True})
 
@@ -980,7 +1122,8 @@ async def get_elections_status(filter_by: str = "", filter_value: str = ""):
             "participation": round(
                 votes_total_in_db / registered_voters * 100, 2),
             "votes_synchronized_in_db": votes_synchronized_in_db,
-            "votes_synchronized_in_elastic": votes_synchronized_in_elastic
+            "votes_synchronized_in_elastic": votes_synchronized_in_elastic,
+            "number_of_polling_places": number_of_polling_places
         }
     }
     return content

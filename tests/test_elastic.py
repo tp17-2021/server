@@ -102,7 +102,7 @@ async def test_seed_and_synchronize_elastic_vote():
 
     # Get election status, there should not be any synced votes
     response = client.get(
-        "/elastic/elections-status", headers=headers, json={})
+        "/elastic/synchronization-status", headers=headers, json={})
     response = response.json()
     print("response:", response)
 
@@ -123,7 +123,7 @@ async def test_seed_and_synchronize_elastic_vote():
 
     # Get election status, there should be new votes synched
     response = client.get(
-        "/elastic/elections-status", headers=headers, json={})
+        "/elastic/synchronization-status", headers=headers, json={})
     response = response.json()
     pprint(response)
     votes_in_db_after_sync = response['data']['votes_synchronized_in_elastic']
