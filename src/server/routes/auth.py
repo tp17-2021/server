@@ -20,7 +20,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 admin_username = os.environ['ADMIN_USERNAME'] if 'ADMIN_USERNAME' in os.environ else 'admin'
-admin_password = pwd_context.hash(os.environ['ADMIN_USERNAME']) if 'ADMIN_USERNAME' in os.environ else pwd_context.hash('admin')
+admin_password = pwd_context.hash(os.environ['ADMIN_PASSWORD']) if 'ADMIN_PASSWORD' in os.environ else pwd_context.hash('admin')
 users_dictionary = {
     admin_username : {
         "username":  admin_username,
