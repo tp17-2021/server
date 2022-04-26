@@ -308,7 +308,8 @@ async def synchronize_votes_ES(number=c.ES_SYNCHRONIZATION_BATCH_SIZE):
             }
         }, {
             '$unwind': {
-                'path': '$party'
+                'path': '$party',
+                'preserveNullAndEmptyArrays': True
             }
         }, {
             '$lookup': {
@@ -330,12 +331,13 @@ async def synchronize_votes_ES(number=c.ES_SYNCHRONIZATION_BATCH_SIZE):
             }
         }
     ])]
-
+    
     # insert them to ES
     data = []
     for vote in unsynced_votes:
-
-        party = vote["party"]
+        
+        is_empty_vote = not "party" in vote
+        party = vote["party"] if not is_empty_vote else None # empty votes have party None
         polling_place = vote["polling_place"]
         candidates = []
 
@@ -350,15 +352,20 @@ async def synchronize_votes_ES(number=c.ES_SYNCHRONIZATION_BATCH_SIZE):
                 "number": int(candidate["order"])
             })
 
+        if is_empty_vote:
+            party_to_insert = None
+        else:
+            party_to_insert = {
+                "id": str(vote["party_id"]),
+                "name": party["name"]
+            }
+
         vote_data = {
             "id": str(vote["_id"]),
             "token": vote["token"],
             "election_id": vote["election_id"],
             "date": int(time.time()),
-            "party": {
-                "id": str(vote["party_id"]),
-                "name": party["name"]
-            },
+            "party": party_to_insert,
             "polling_place": {
                 "id": str(polling_place["_id"]),
                 "municipality_name": polling_place["municipality_name"],

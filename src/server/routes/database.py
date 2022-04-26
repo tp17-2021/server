@@ -224,11 +224,11 @@ async def seed_votes(number_of_votes: int) -> dict:
     polling_places = [polling_place async for polling_place in DB.polling_places.find()]
     parties = await get_parties_with_candidates()
     # parties_probabilities = [ random.randint(10, 100) for _ in parties ]
-    parties_probabilities = [28, 30, 120, 22, 72, 26, 17, 81, 58, 28, 48, 200, 73, 15, 69, 49, 27, 86, 39, 13, 150, 73, 23, 80, 43]
+    parties_probabilities = [28, 30, 80, 22, 72, 26, 17, 81, 58, 28, 48, 180, 73, 15, 69, 49, 27, 70, 140, 13, 100, 73, 23, 80, 43]
 
     # TODO spravit condition probabilies
     # polling_place_probabilities
-
+    empty_vote_prob = 0.05
     votes_to_be_inserted = []
     max_id = await get_max_id("votes")
     for _id in range(number_of_votes):
@@ -250,14 +250,17 @@ async def seed_votes(number_of_votes: int) -> dict:
         selected_token = await generate_token()
         vote["token"] = selected_token
 
-        selected_party = random.choices(parties, parties_probabilities, k=1)[0]
-        vote["party_id"] = selected_party["_id"]
-
         vote["election_id"] = config.ELECTION_ID
 
-        selected_candidates = await choose_candidates(selected_party["candidates"])
-        for selected_candidate in selected_candidates:
-            vote["candidate_ids"].append(selected_candidate["_id"])
+        # some votes will be empty 
+        if random.random() > empty_vote_prob:
+
+            selected_party = random.choices(parties, parties_probabilities, k=1)[0]
+            vote["party_id"] = selected_party["_id"]
+
+            selected_candidates = await choose_candidates(selected_party["candidates"])
+            for selected_candidate in selected_candidates:
+                vote["candidate_ids"].append(selected_candidate["_id"])
 
         votes_to_be_inserted.append(vote)
 
