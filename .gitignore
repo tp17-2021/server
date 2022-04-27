@@ -49,11 +49,11 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 
+# Mac
+.DS_Store
 
 # Directories
 server-db-data/
 server-db-data/**
 
-# Files
-
-
+.pytest_cache

@@ -19,7 +19,12 @@ services:
       - SERVER_DB_HOST=server-db
       - SERVER_DB_PORT=27017
       - SERVER_DB_NAME=server-db
+      - ELASTIC_HOST=electie_es_01
+      - ELASTIC_PORT=9200
       - ROOT_PATH=/server
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+      - ACCEPT_TOKEN_VALID=1
 
   server-db:
     # use existing mongo image from dockerhub
@@ -35,3 +40,64 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
+  
+  electie_es_01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: electie_es_01
+    environment:
+      - node.name=electie_es_01
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=electie_es_02,electie_es_03
+      - cluster.initial_master_nodes=electie_es_01,electie_es_02,electie_es_03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+
+  electie_es_02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: electie_es_02
+    environment:
+      - node.name=electie_es_02
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=electie_es_01,electie_es_03
+      - cluster.initial_master_nodes=electie_es_01,electie_es_02,electie_es_03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data02:/usr/share/elasticsearch/data
+
+  electie_es_03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: electie_es_03
+    environment:
+      - node.name=electie_es_03
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=electie_es_01,electie_es_02
+      - cluster.initial_master_nodes=electie_es_01,electie_es_02,electie_es_03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - data03:/usr/share/elasticsearch/data
+
+volumes:
+  data01:
+    driver: local
+  data02:
+    driver: local
+  data03:
+    driver: local

@@ -1,6 +1,6 @@
 from typing import Collection
-from pydantic import BaseModel, validator, Extra, Field
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel, validator, Field
 
 
 class Message(BaseModel):
@@ -24,7 +24,7 @@ class Texts(BaseModel):
     election_date: Text
 
 class Candidate(BaseModel):
-    _id: int
+    id: int = Field(..., alias="_id")
     party_number: int
     order: int
     first_name: str
@@ -33,18 +33,20 @@ class Candidate(BaseModel):
     age: int
     occupation: str
     residence: str
-    
+
 class Party(BaseModel):
-    _id: int
+    id: int = Field(..., alias="_id")
     party_number: int
     name: str
-    abbreviation: str
+    official_abbr: str
+    abbr: str
     image: str
     image_bytes: str
+    color: str
     candidates: List[Candidate] = []
 
 class PollingPlace(BaseModel):
-    _id: int
+    id: int = Field(..., alias="_id")
     region_code: int
     region_name: str
     administrative_area_code: int
@@ -73,7 +75,7 @@ class PollingPlace(BaseModel):
         }
 
 class KeyPair(BaseModel):
-    _id: int
+    id: int = Field(..., alias="_id")
     polling_place_id: int
     private_key_pem: str
     public_key_pem: str
@@ -84,13 +86,22 @@ class VotingData(BaseModel):
     polling_places: List[PollingPlace] = []
     parties: List[Party] = []
     key_pairs: List[KeyPair] = []
+    municipalities: List[object]
+    counties: List[object]
+    regions: List[object]
+    texts: Texts
+
+class GatewayConfig(BaseModel):
+    polling_place: PollingPlace
+    parties: List[Party] = []
+    key_pairs: List[KeyPair] = []
     texts: Texts
 
 class Vote(BaseModel):
     token: str
-    party_id: int
+    party_id: Optional[int] = None
     election_id: str
-    candidates_ids: List[int] = []
+    candidate_ids: List[int] = []
 
 class VoteEncrypted(BaseModel):
     encrypted_message: str
@@ -125,7 +136,7 @@ class VoteToBeEncrypted(BaseModel):
                     "token": "fjosjfidsw",
                     "party_id": 10,
                     "election_id": "election_id",
-                    "candidates_ids": [
+                    "candidate_ids": [
                         1158,
                         1077,
                         1191,
@@ -156,8 +167,84 @@ class VoteToBeDecrypted(BaseModel):
 class VoteDecrypted(BaseModel):
     vote: Vote
 
+class StatisticsPerPartyRequest(BaseModel):
+    party: Optional[str] = None
 
-# Statistics
-# jednoduche vyhodnotenie
-# porataj pogroupovane podla can Id a party id
-# pomenovanie na predbezne (urcene len pre G a pre Admina + TV) / vysledky ()
+    class Config:
+        schema_extra = {
+            "example": {
+                "party": "SME RODINA"
+            }
+        }
+
+class StatisticsPerLocalityRequest(BaseModel):
+    filter_by: str
+    filter_value: Optional[int] = None
+
+    @validator("filter_by")
+    def group_by_only_plausible_localities(cls, v):
+        possible_values = ["region_code", "county_code",
+                           "municipality_code", "administrative_area_code"]
+        if v not in possible_values:
+            raise ValueError(
+                "Invalid filter by value. Possible values: " + ",".join(possible_values))
+        return v
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "filter_by": "region_code",
+                "filter_value": 1
+            }
+        }
+
+class Member(BaseModel):
+    name: str
+    agree: bool
+
+class Commission(BaseModel):
+    polling_place_id: int
+    participated_members: List[Member] = None
+    president: Member
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "polling_place_id": 0,
+                "participated_members": [
+                    {
+                        "name": "Bc. Libor Duda",
+                        "agree": True
+                    },
+                    {
+                        "name": "Bc. Timotej Králik",
+                        "agree": False
+                    },
+                    {
+                        "name": "Bc. Lucia Janíková",
+                        "agree": True
+                    }
+                ],
+                "president": {
+                    "name": "Boris Osuský",
+                    "agree": True
+                }
+            }
+        }
+
+class CommissionPaperToBeDecrypted(BaseModel):
+    date_and_time: str
+    polling_place_id: int
+    encrypted_commission_paper: VoteEncrypted
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "date_and_time": "29.03.2022 17:24:03",
+                "polling_place_id": 0,
+                "encrypted_commission_paper": {
+                    "encrypted_message": "yFke67UNBxjChUY2FqnKlhMBtz0TRe3JSg3VLfJUtTTFMXRj9B02fkNn/OX7EfplghBVESSOi1WmUgbcHO4IJpFgAB09kB4x8ZfXu0iVRESfMROZ7T686PBiaZDxirgqg3IRRFWcfXMq2ZSrMobGBXc/OMAfllEGaxohtkyC/oq7kYsZXH59QhKZ8xs+bxn9U7ITiyoYmrtyGisa8vhwaYZCeLpMxGbFRtAyOfeT5kUfq1Vk4lAIbLtuI3RPqRlQLLScV9I9hhiQeBAA8u4oeeqLmVnywOAdSuNBJWRgyW9GDCKuw6ni1DPuJKt0WGuoUlb7e4gb/SWYhIFPUil/iya956MGmO/tFbvh8OsijcgGZuc5MWV63/ATUhjwnV16U/5edYIKuditHw+Iswe1bXZwNouk9rvgK+iuPY1ICCYOHTWKeG/De4RT+C2dO7fm4FS4ibfVyFQgM8FsS+Ix3WNal51L3bQw4Szvz02ALeGWcWkSHR6svFsIKe7JSGrmK+fe9AZM9qt0vp+XEi4B2uu9be+C8w/xicotsw==",
+                    "encrypted_object": "AuQ4w2PkjjUuwpTM6j1CJCBgAZv+7BPbxV2KO4am/u+g2Ar81NOlxynNnfPnPXyABBkhbAceDAwuTuaFAtXTpqzsDhHwVXqqY1jNjCcDBRjkOStygZr7fCkAo6ePtc+pFcTUxzg6YTRZ6k8baHQ0JuEssNxxYMPoyST8fv7KTkJCGHmgAM8bUViXOuYRQCRPLX4ZB3mGKTDT8q+6D0OfwTLhO7Z2/KUVHEOtxbjwWhjyjaMUQtwauzCpicVp0dnlNW2sdOwYqZe24Ip3RZrODi5Jd/whKIYGNxF6gBxfqBnuuR/TPw6h/E1I/XgSHAoQ6aibMTTl6jsBb5dePXYs9A=="
+                }
+            }
+        }

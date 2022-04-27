@@ -1,13 +1,10 @@
 # General modules
-import traceback
 from electiersa import electiersa
 
 # FastAPI modules
 from fastapi import APIRouter, status
-from starlette.responses import JSONResponse
 
 # Server modules
-from src.server import config
 from src.server import schemas
 from src.server.database import get_database
 
@@ -18,13 +15,16 @@ router = APIRouter(
 )
 
 
-@router.post("/key-pairs", response_model=schemas.Message, status_code=status.HTTP_200_OK)
-async def create_key_pairs_for_polling_places():
+@router.post("/key-pairs", response_model=schemas.Message)
+async def create_key_pairs_for_polling_places() -> dict:
+    """ Create key pairs for polling places """
+
     DB  = await get_database()
     
+    # TODO toto potom odkomentovat
     # DB.key_pairs.drop()
 
-    # --- toto potom odstranit
+    # TODO toto potom odstranit
     count = 0
     N = 0
     # ---
@@ -34,8 +34,8 @@ async def create_key_pairs_for_polling_places():
 
     for polling_place_id in polling_place_ids:
         if polling_place_id not in polling_place_ids_key_pairs:
-            private_key_pem, public_key_pem = await electiersa.get_rsa_key_pair()
-            g_private_key_pem, g_public_key_pem = await electiersa.get_rsa_key_pair()
+            private_key_pem, public_key_pem = electiersa.get_rsa_key_pair()
+            g_private_key_pem, g_public_key_pem = electiersa.get_rsa_key_pair()
 
             key_pair = {
                 "_id": polling_place_id,
@@ -47,7 +47,7 @@ async def create_key_pairs_for_polling_places():
             }
             await DB.key_pairs.insert_one(key_pair)
 
-        # --- toto potom odstranit
+        # TODO toto potom odstranit
         count += 1
         if count > N:
             break
@@ -58,24 +58,3 @@ async def create_key_pairs_for_polling_places():
         "message": "RSA cryptography keys successfully generated"
     }
     return content
-
-
-@router.post("/test-encrypt-vote", response_model=schemas.VoteEncrypted, status_code=status.HTTP_200_OK)
-async def test_encrypt_vote(request: schemas.VoteToBeEncrypted):
-    vote = request.vote
-    vote = dict(vote)
-    g_private_key_pem = request.g_private_key_pem
-    public_key_pem = request.public_key_pem
-        
-    encrypted_vote = await electiersa.encrypt_vote(vote, g_private_key_pem, public_key_pem)
-    return encrypted_vote
-
-
-@router.post("/test-decrypt-vote", response_model=schemas.Vote, status_code=status.HTTP_200_OK)
-async def test_decrypt_vote(request: schemas.VoteToBeDecrypted):
-    encrypted_vote = dict(request.encrypted_vote)
-    private_key_pem = request.private_key_pem
-    g_public_key_pem = request.g_public_key_pem
-
-    vote = await electiersa.decrypt_vote(encrypted_vote, private_key_pem, g_public_key_pem)
-    return vote

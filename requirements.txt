@@ -14,3 +14,10 @@ nest-asyncio
 IPython
 wheel
 electiersa
+elasticsearch
+mdutils==1.3.1
+pytest-ordering
+
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]

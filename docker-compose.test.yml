@@ -12,19 +12,83 @@ services:
     restart: "no"
     depends_on:
       - server-db
+      - electie_test_es_01
     # export useful environment variables to the service
     environment:
       - SERVER_DB_HOST=server-db
       - SERVER_DB_PORT=27017
       - SERVER_DB_NAME=server-db
+      - ELASTIC_HOST=electie_test_es_01
+      - ELASTIC_PORT=9200
       - ROOT_PATH=
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+      - ACCEPT_TOKEN_VALID=0
 
   server-db:
     # use existing mongo image from dockerhub
     image: mongo
+    #supress too verbose logs
+    # command: ["mongod", "--quiet"]
+    command:
+      - '--logpath'
+      - '/var/log/mongodb/mongod.log'
     # container_name: server-db
     restart: unless-stopped
     # export useful environment variables to the service's container
     environment:
       - PUID=1000
       - PGID=1000
+
+  electie_test_es_01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    command: [ "elasticsearch", "-Elogger.level=ERROR" ]
+    environment:
+      - node.name=electie_test_es_01
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=electie_test_es_02,electie_test_es_03
+      - cluster.initial_master_nodes=electie_test_es_01,electie_test_es_02,electie_test_es_03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  electie_test_es_02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    command: [ "elasticsearch", "-Elogger.level=ERROR" ]
+    environment:
+      - node.name=electie_test_es_02
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=electie_test_es_01,electie_test_es_03
+      - cluster.initial_master_nodes=electie_test_es_01,electie_test_es_02,electie_test_es_03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  electie_test_es_03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    command: [ "elasticsearch", "-Elogger.level=ERROR" ]
+    environment:
+      - node.name=electie_test_es_03
+      - cluster.name=es-docker-cluster
+      - discovery.seed_hosts=electie_test_es_01,electie_test_es_02
+      - cluster.initial_master_nodes=electie_test_es_01,electie_test_es_02,electie_test_es_03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+volumes:
+  data01:
+    driver: local
+  data02:
+    driver: local
+  data03:
+    driver: local
