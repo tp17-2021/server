@@ -11,23 +11,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  tests:
-    name: Server tests
-    runs-on: self-hosted
+  # tests:
+  #   name: Server tests
+  #   runs-on: self-hosted
     
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+  #   steps:
+  #     - name: Check out code
+  #       uses: actions/checkout@v2
 
-      - name: Run tests
-        run: docker-compose -f docker-compose.test.yml -p server-tests up --build --exit-code-from server --force-recreate --renew-anon-volumes --remove-orphans
+  #     - name: Run tests
+  #       run: docker-compose -f docker-compose.test.yml -p server-tests up --build --exit-code-from server --force-recreate --renew-anon-volumes --remove-orphans
 
-      - name: Docker cleanup
-        run: docker-compose -f docker-compose.test.yml -p server-tests down
+  #     - name: Docker cleanup
+  #       run: docker-compose -f docker-compose.test.yml -p server-tests down
   
   stage:
     name: Server stage on team server
-    needs: tests
+    # needs: tests
     runs-on: self-hosted
     
     steps:
