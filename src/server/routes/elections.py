@@ -184,7 +184,7 @@ async def validate_decryption(decrypted_vote: dict, polling_place_id: int, max_i
         return content
     try:
         decrypted_vote["polling_place_id"] = polling_place_id
-        decrypted_vote["_id"] = max_id + 1 + _id
+        # decrypted_vote["_id"] = max_id + 1 + _id
     except Exception as e:
         content = {
             "status": "failure",
@@ -218,7 +218,7 @@ async def validate_votes(request):
 
     votes_to_be_inserted = []
     votes = request.votes
-    max_id = await get_max_id("votes")
+    # max_id = await get_max_id("votes")
 
     tokens_to_be_validated = []
 
@@ -228,12 +228,12 @@ async def validate_votes(request):
 
         decrypted_vote = electiersa.decrypt_vote(
             encrypted_vote, private_key_pem, g_public_key_pem)
-        content = await validate_decryption(decrypted_vote, polling_place_id, max_id, _id)
+        content = await validate_decryption(decrypted_vote, polling_place_id, 0, _id)
         if content["status"] == "failure":
             return content
 
         decrypted_vote["polling_place_id"] = polling_place_id
-        decrypted_vote["_id"] = max_id + 1 + _id
+        # decrypted_vote["_id"] = max_id + 1 + _id
 
         content = await validate_party_and_candidates(decrypted_vote)
         if content["status"] == "failure":

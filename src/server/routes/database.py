@@ -233,7 +233,7 @@ async def seed_votes(number_of_votes: int) -> dict:
     max_id = await get_max_id("votes")
     for _id in range(number_of_votes):
         vote = {
-            "_id": None,
+            # "_id": None,
             "token": None,
             "party_id": None,
             "election_id": None,
@@ -242,7 +242,7 @@ async def seed_votes(number_of_votes: int) -> dict:
         }
 
         # TODO toto tu je problem treba prediskutovat
-        vote["_id"] = max_id + 1 + _id
+        # vote["_id"] = max_id + 1 + _id
 
         selected_polling_place = random.choice(polling_places)
         vote["polling_place_id"] = selected_polling_place["_id"]
