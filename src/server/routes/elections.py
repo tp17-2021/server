@@ -235,21 +235,21 @@ async def validate_votes(request):
         decrypted_vote["polling_place_id"] = polling_place_id
         # decrypted_vote["_id"] = max_id + 1 + _id
 
-        content = await validate_party_and_candidates(decrypted_vote)
-        if content["status"] == "failure":
-            return content
+        # content = await validate_party_and_candidates(decrypted_vote)
+        # if content["status"] == "failure":
+        #     return content
 
-        token = decrypted_vote["token"]
-        content = await validate_token_with_polling_place_id(token, polling_place_id)
-        if content["status"] == "failure":
-            return content
+        # token = decrypted_vote["token"]
+        # content = await validate_token_with_polling_place_id(token, polling_place_id)
+        # if content["status"] == "failure":
+        #     return content
 
-        tokens_to_be_validated.append(token)
+        # tokens_to_be_validated.append(token)
 
-        election_id = decrypted_vote["election_id"]
-        content = await validate_election_id(election_id)
-        if content["status"] == "failure":
-            return content
+        # election_id = decrypted_vote["election_id"]
+        # content = await validate_election_id(election_id)
+        # if content["status"] == "failure":
+        #     return content
 
         votes_to_be_inserted.append(decrypted_vote)
 
